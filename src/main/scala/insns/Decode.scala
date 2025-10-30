@@ -58,8 +58,8 @@ class VectorDecoder(
       insns, fields)
   }
 
-  val index = Cat(rs1(4,0), rs2(4,0), funct3(2,0), funct6(5,0), sew(1,0)/*, ext*/)
-  val lookups = insns.map { i => i.lookup(RS1) ## i.lookup(RS2) ## i.lookup(F3) ## i.lookup(F6) ## i.lookup(SEW) /*## i.lookup(EXT)*/ }
+  val index = Cat(rs1(4,0), rs2(4,0), funct3(2,0), funct6(5,0), sew(1,0), ext)
+  val lookups = insns.map { i => i.lookup(RS1) ## i.lookup(RS2) ## i.lookup(F3) ## i.lookup(F6) ## i.lookup(SEW) ## i.lookup(EXT) }
   val duplicates = lookups.diff(lookups.distinct).distinct
   val table = insns.map { i => fields.map(f => i.lookup(f)) :+ BitPat(true.B) }
 
@@ -74,7 +74,6 @@ class VectorDecoder(
   val truthTable = TruthTable(lookups.zip(table).map { case (l,r) => (l, r.reduce(_ ## _)) }, defaults.reduce(_ ## _))
   val decode = chisel3.util.experimental.decode.decoder(index, truthTable)
   val decoded = elementIndices.zip(elementIndices.tail).map { case (msb, lsb) => decode(msb, lsb+1) }.toSeq
-
 
   def uint(field: InstructionField): UInt = {
     val index = fields.indexOf(field)

@@ -54,11 +54,12 @@ class VectorBackend(implicit p: Parameters) extends CoreModule()(p) with HasVect
   val vlissq = Module(new IssueQueue(vParams.vlissqEntries, 1))
   val vsissq = Module(new IssueQueue(vParams.vsissqEntries, 1))
   val vpissq = Module(new IssueQueue(vParams.vpissqEntries, 2)) // permute/reduction
-  val vxissqs = xissParams.map(q => Module(new IssueQueue(q.depth, q.seqs.size + 1)).suggestName(s"vxissq_${q.name}")) // +1 hack for opu
+  val vxissqs = xissParams.map(q => Module(new IssueQueue(q.depth, q.seqs.size + 2)).suggestName(s"vxissq_${q.name}")) // +1 hack for opu (another +1 for bdot)
 
   val vxus = xissParams.map(_.seqs.map(s => Module(new ExecutionUnit(s.fus, s.name)).suggestName(s"vxu${s.name}")))
   val flat_vxus = vxus.flatten
   val vopu = Option.when(useOpu) { Module(new OuterProductUnit) }
+  val vbdot = Option.when(true) { Module(new BDotUnit(2, 1)) } // TODO: Add config option
   val maxPipeDepth = (flat_vxus.map(_.maxPipeDepth) ++ vopu.map(_.yDim + 2)).max
 
 
@@ -69,14 +70,17 @@ class VectorBackend(implicit p: Parameters) extends CoreModule()(p) with HasVect
   ))
 
   val vos = Option.when(useOpu) { Module(new OuterProductSequencer) }
-  val all_supported_insns = xissParams.map(_.insns).flatten ++ vos.map(_.opu_insns).getOrElse(Nil)
+  val vbs = Option.when(true) { Module(new BDotSequencer(2, 1)) } // TODO: Add config option
+  val all_supported_insns = xissParams.map(_.insns).flatten ++ vos.map(_.opu_insns).getOrElse(Nil) ++ vbs.map(_.bdot_insns).getOrElse(Nil)
   val vps = Module(new SpecialSequencer(all_supported_insns))
 
-  val allSeqs = Seq(vls, vss, vps) ++ vxs.flatten ++ vos
+  val allSeqs = Seq(vls, vss, vps) ++ vxs.flatten ++ vos ++ vbs
   val allIssQs = Seq(vlissq, vsissq, vpissq) ++ vxissqs
 
   val flat_vxs = vxs.flatten
   require(flat_vxs.size == flat_vxus.size)
+
+  val vbs_index = (flat_vxs ++ vos).size
 
   io.fp_req.valid := false.B
   io.fp_req.bits := DontCare
@@ -102,7 +106,7 @@ class VectorBackend(implicit p: Parameters) extends CoreModule()(p) with HasVect
     IssueGroup(vpissq, Seq(vps)),
   ) ++ (vxissqs.zip(vxs).zipWithIndex.map { case ((q, seqs), i) =>
     val s = if (i == 0 && useOpu) (seqs ++ vos) else seqs
-    IssueGroup(q, s)
+    IssueGroup(q, s ++ vbs)
   })
 
   // ======================================
@@ -266,7 +270,7 @@ class VectorBackend(implicit p: Parameters) extends CoreModule()(p) with HasVect
   // ======================================
   // Connect reads to VRF
 
-  val vrf = Module(new RegisterAccess((flat_vxs ++ vos).size, maxPipeDepth))
+  val vrf = Module(new RegisterAccess((flat_vxs ++ vos ++ vbs).size, maxPipeDepth))
   vrf.io.vls.rvm.req <> vls.io.rvm
   vrf.io.vss.rvd.req <> vss.io.rvd
   vrf.io.vss.rvm.req <> vss.io.rvm
@@ -394,6 +398,22 @@ class VectorBackend(implicit p: Parameters) extends CoreModule()(p) with HasVect
     vopu.io.op := vopu_ctrl_reg
   }
 
+  vbdot.foreach { vbdot =>
+    vrf.io.vxs(vbs_index).rvs1.req <> vbs.get.io.rvs1
+    vrf.io.vxs(vbs_index).rvs2.req <> vbs.get.io.rvs2
+    vrf.io.vxs(vbs_index).rvd.req <> vbs.get.io.rvd
+    vrf.io.vxs(vbs_index).rvm.req <> vbs.get.io.rvm
+    vbs.get.io.iss.ready := vbdot.io.op.ready
+    vbdot.io.op.valid := vbs.get.io.iss.valid
+    vbdot.io.op.bits := vbs.get.io.iss.bits
+    vbdot.io.rvs1_data := vrf.io.vxs(vbs_index).rvs1.resp
+    vbdot.io.rvs2_data := vrf.io.vxs(vbs_index).rvs2.resp
+    vrf.io.batch_read_vs2 := vbs.get.io.batch_read_vs2
+    vrf.io.batch_vs2_eg := vbs.get.io.rvs2.bits.eg
+    vbdot.io.batch_vs2_data := vrf.io.batch_vs2_data
+    vbdot.io.rvd_data := vrf.io.vxs(vbs_index).rvd.resp
+    vbdot.io.rvm_data := vrf.io.vxs(vbs_index).rvm.resp
+  }
 
   val frontend_rindex = Wire(new VectorReadIO)
   val frontend_rmask  = Wire(new VectorReadIO)
@@ -419,6 +439,14 @@ class VectorBackend(implicit p: Parameters) extends CoreModule()(p) with HasVect
 
     vrf.io.iter_writes(flat_vxs.size).valid := false.B
     vrf.io.iter_writes(flat_vxs.size).bits := DontCare
+  }
+
+  vbs.foreach { vbs =>
+    vrf.io.vxs(vbs_index).pipe_write_req <> vbs.io.pipe_write_req
+    vrf.io.pipe_writes(vbs_index) := vbdot.get.io.write
+
+    vrf.io.iter_writes(vbs_index).valid := false.B
+    vrf.io.iter_writes(vbs_index).bits := DontCare
   }
 
   val load_write = Wire(Decoupled(new VectorWrite(dLen)))

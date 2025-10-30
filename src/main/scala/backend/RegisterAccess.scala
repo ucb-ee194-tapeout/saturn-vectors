@@ -33,6 +33,10 @@ class RegisterAccess(exSeqs: Int, maxExuDepth: Int)(implicit p: Parameters) exte
       val rmask = Flipped(new VectorReadIO)
     }
 
+    val batch_read_vs2 = Input(Bool())
+    val batch_vs2_eg = Input(UInt(log2Ceil(egsTotal).W))
+    val batch_vs2_data = Output(Vec(vParams.vrfBanking, UInt(dLen.W)))
+
     val pipe_writes = Vec(exSeqs, Input(Valid(new VectorWrite(dLen))))
     val iter_writes = Vec(exSeqs, Flipped(Decoupled(new VectorWrite(dLen))))
     val load_write = Flipped(Decoupled(new VectorWrite(dLen)))
@@ -88,6 +92,10 @@ class RegisterAccess(exSeqs: Int, maxExuDepth: Int)(implicit p: Parameters) exte
   vrf.io.mask_read(0)(exSeqs+1) <> io.vss.rvm
   vrf.io.mask_read(0)(exSeqs+2) <> io.vps.rvm
   vrf.io.mask_read(0)(exSeqs+3) <> io.frontend.rmask
+
+  vrf.io.batch_read_vs2 := io.batch_read_vs2
+  vrf.io.batch_vs2_eg := io.batch_vs2_eg
+  io.batch_vs2_data := vrf.io.batch_vs2_data
 
   when (resetting) {
     io.vls.rvm.req.ready := false.B

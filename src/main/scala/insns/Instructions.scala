@@ -239,5 +239,7 @@ object OPMVINBCAST extends OPMInstruction    { val props = Seq(F6(OPMFunct6.opmv
 object OPMVOUT     extends OPMInstruction    { val props = Seq(F6(OPMFunct6.opmvout)    , ReadsVS1.N, ReadsVS2.N, WritesVD.Y) }
 
 // Batched dot product instructions
-object LDOTU extends OPMInstruction    { val props = Seq(F6(OPMExtFunct6.ldotu) , EXT.Y) }
-object LDOTS extends OPMInstruction    { val props = Seq(F6(OPMExtFunct6.ldots) , EXT.Y) }
+object QLDOTUA extends OPIInstruction    { val props = Seq(F6(OPMExtFunct6.qldotua), EXT.Y, BDotSigned.N, BDotFP.N, BDotBatched.N, BDotWiden(2.U(2.W))) }
+object QLDOTSA extends OPIInstruction    { val props = Seq(F6(OPMExtFunct6.qldotsa), EXT.Y, BDotSigned.Y, BDotFP.N, BDotBatched.N, BDotWiden(2.U(2.W))) }
+object QBDOTUA extends OPIInstruction    { val props = Seq(F6(OPMExtFunct6.qbdotua), EXT.Y, BDotSigned.N, BDotFP.N, BDotBatched.Y, BDotWiden(2.U(2.W))) }
+object QBDOTSA extends OPIInstruction    { val props = Seq(F6(OPMExtFunct6.qbdotsa), EXT.Y, BDotSigned.Y, BDotFP.N, BDotBatched.Y, BDotWiden(2.U(2.W))) }

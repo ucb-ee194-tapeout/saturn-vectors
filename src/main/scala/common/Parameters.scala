@@ -31,8 +31,9 @@ object VectorParams {
     doubleBufferSegments = true,
     useScalarFPFMA = false,
     useSegmentedFPFMA = true,
-    vrfBanking = 4,
+    vrfBanking = 8,
     useOpu = true,
+    useBDot = true,
     issStructure = VectorIssueStructure.Shared
   )
 
@@ -344,7 +345,7 @@ case class VectorParams(
   useScalarFPFMA: Boolean = true,       // Use shared scalar FPU all non-FMA FP instructions
   useIterativeIMul: Boolean = false,
   useElementwiseFP64: Boolean = false,
-  useSegmentedFPFMA: Boolean = false,
+  useSegmentedFPFMA: Boolean = true,
   fmaPipeDepth: Int = 4,
   imaPipeDepth: Int = 4,
 
@@ -373,13 +374,21 @@ case class VectorParams(
 
   // Add OPU to design
   useOpu : Boolean = false,
+
+  // Add batch dot product unit
+  useBDot: Boolean = false,
 ) {
   def opuInsns = Seq(
     saturn.insns.OPMACC.VV,
     saturn.insns.OPMVIN.VX,
     saturn.insns.OPMVINBCAST.VX,
     saturn.insns.OPMVOUT.VX)
-  def supported_ex_insns = issStructure.generate(this).map(_.insns).flatten ++ (if (useOpu) opuInsns else Nil)
+  def bdotInsns = Seq(
+    saturn.insns.QLDOTUA.VV,
+    saturn.insns.QLDOTSA.VV,
+    saturn.insns.QBDOTUA.VV,
+    saturn.insns.QBDOTSA.VV)
+  def supported_ex_insns = issStructure.generate(this).map(_.insns).flatten ++ (if (useOpu) opuInsns else Nil) ++ (if (useBDot) bdotInsns else Nil)
 
   require(dLen >= 64, "dLen must be >= 64")
   require((dLen & (dLen - 1)) == 0, "dLen must be power of 2")

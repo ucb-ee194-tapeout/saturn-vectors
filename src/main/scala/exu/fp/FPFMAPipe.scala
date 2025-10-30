@@ -120,6 +120,47 @@ class TandemFMAPipe(depth: Int, buildFP64: Boolean, mxFPFMA: Boolean)(implicit p
   }}
 }
 
+class MulAddRecFNPipeUnrounded(latency: Int, expWidth: Int, sigWidth: Int) extends Module {
+  override def desiredName = s"MulAddRecFNPipeUnrounded_l${latency}_e${expWidth}_s${sigWidth}"
+  require(latency<=2)
+
+  val io = IO(new Bundle {
+    val validin = Input(Bool())
+    val op = Input(Bits(2.W))
+    val a = Input(Bits((expWidth + sigWidth + 1).W))
+    val b = Input(Bits((expWidth + sigWidth + 1).W))
+    val c = Input(Bits((expWidth + sigWidth + 1).W))
+    val roundingMode   = Input(UInt(3.W))
+    val detectTininess = Input(UInt(1.W))
+    val out = Output(new hardfloat.RawFloat(expWidth, sigWidth + 2))
+    val invalidExc = Output(Bool())
+    val validout = Output(Bool())
+  })
+
+  val mulAddRecFNToRaw_preMul = Module(new hardfloat.MulAddRecFNToRaw_preMul(expWidth, sigWidth))
+  val mulAddRecFNToRaw_postMul = Module(new hardfloat.MulAddRecFNToRaw_postMul(expWidth, sigWidth))
+
+  mulAddRecFNToRaw_preMul.io.op := io.op
+  mulAddRecFNToRaw_preMul.io.a  := io.a
+  mulAddRecFNToRaw_preMul.io.b  := io.b
+  mulAddRecFNToRaw_preMul.io.c  := io.c
+
+  val mulAddResult = (mulAddRecFNToRaw_preMul.io.mulAddA * mulAddRecFNToRaw_preMul.io.mulAddB) +& mulAddRecFNToRaw_preMul.io.mulAddC
+
+  val valid_stage0 = Wire(Bool())
+
+  val postmul_regs = if(latency>0) 1 else 0
+  mulAddRecFNToRaw_postMul.io.fromPreMul   := Pipe(io.validin, mulAddRecFNToRaw_preMul.io.toPostMul, postmul_regs).bits
+  mulAddRecFNToRaw_postMul.io.mulAddResult := Pipe(io.validin, mulAddResult, postmul_regs).bits
+  mulAddRecFNToRaw_postMul.io.roundingMode := Pipe(io.validin, io.roundingMode, postmul_regs).bits
+  valid_stage0                             := Pipe(io.validin, false.B, postmul_regs).valid
+
+  val round_regs = if(latency==2) 1 else 0
+  io.validout       := Pipe(valid_stage0, false.B, round_regs).valid
+  io.out            := Pipe(valid_stage0, mulAddRecFNToRaw_postMul.io.rawOut, round_regs).bits
+  io.invalidExc     := Pipe(valid_stage0, mulAddRecFNToRaw_postMul.io.invalidExc, round_regs).bits
+}
+
 class SegmentedFMAPipe(depth: Int, buildFP64: Boolean, mxFPFMA: Boolean)(implicit p: Parameters) extends FMAPipe()(p) {
   require (depth >= 4)
 
@@ -254,7 +295,7 @@ class SegmentedFMAPipe(depth: Int, buildFP64: Boolean, mxFPFMA: Boolean)(implici
     val usedFor = ftype_used_for(fma_type)
     val fma_valid = usedFor.map(valid_signals(_)).foldLeft(0.U)(_|_).asBool
     val s1_valid = RegNext(fma_valid, false.B)
-    val fma = Module(new MulAddRecFNPipe(depth-2, fma_type.exp, fma_type.sig))
+    val fma = Module(new MulAddRecFNPipeUnrounded(depth-2, fma_type.exp, fma_type.sig))
     fma.io.validin      := s1_valid
     fma.io.op           := Mux(s1_valid, s1_op, 0.U)
     fma.io.roundingMode := Mux(s1_valid, s1_frm, 0.U)
@@ -307,30 +348,24 @@ class SegmentedFMAPipe(depth: Int, buildFP64: Boolean, mxFPFMA: Boolean)(implici
 
       val select_out = out_select(data_type)
       if (data_type == FType.E5M3){
-        val (out_bits, exc_flags) = rawUnroundedToFp8(fma_type, fma.io.unroundedOut, fma.io.unroundedInvalidExc, out_altfmt_pipe.bits, frm_pipe.bits, false.B)
+        val (out_bits, exc_flags) = rawUnroundedToFp8(fma_type, fma.io.out, fma.io.invalidExc, out_altfmt_pipe.bits, frm_pipe.bits, false.B)
 
         when (select_out) {
           out(data_type)(index) := Pipe(fma.io.validout, out_bits, depth-4).bits
           exc(data_type).slice(index, index + ftype_exc_lanes(data_type)).foreach { _ := Pipe(fma.io.validout, exc_flags, depth-4).bits }
         }
       }
-      else if (data_type != fma_type) {
+      else {
         val narrower = Module(new hardfloat.RoundAnyRawFNToRecFN(fma_type.exp, fma_type.sig + 2, data_type.exp, data_type.sig, 0))
-        narrower.io.in := fma.io.unroundedOut
+        narrower.io.in := fma.io.out
         narrower.io.roundingMode := frm_pipe.bits
         narrower.io.detectTininess := hardfloat.consts.tininess_afterRounding
-        narrower.io.invalidExc := fma.io.unroundedInvalidExc
+        narrower.io.invalidExc := fma.io.invalidExc
         narrower.io.infiniteExc := false.B
 
         when (select_out) {
           out(data_type)(index) := Pipe(fma.io.validout, data_type.ieee(narrower.io.out), depth-4).bits
-          exc(data_type).slice(index, index + ftype_exc_lanes(data_type)).foreach { _ := Pipe(fma.io.validout, narrower.io.exceptionFlags, depth-4).bits }
-        }
-      }
-      else {
-        when (select_out) {
-          out(data_type)(index) := Pipe(fma.io.validout, data_type.ieee(fma.io.out), depth-4).bits
-          exc(data_type).slice(index, index + ftype_exc_lanes(data_type)).foreach { _ := Pipe(fma.io.validout, fma.io.exceptionFlags, depth-4).bits }
+          exc(data_type).slice(index, index + ftype_exc_lanes(data_type)).foreach { _ := Pipe(fma.io.validout, narrower.io.invalidExc, depth-4).bits }
         }
       }
     }

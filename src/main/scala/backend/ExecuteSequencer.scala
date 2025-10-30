@@ -239,7 +239,7 @@ class ExecuteSequencer(supported_insns: Seq[VectorInstruction], maxPipeDepth: In
 
   val wvd_eg = getEgId(inst.rd, Mux(inst.reduction, 0.U, eidx), vd_eew, inst.writes_mask)
   io.pipe_write_req.request := valid && pipelined && exu_scheduler.io.reqs(0).available
-  io.pipe_write_req.bank_sel := (if (vrfBankBits == 0) 1.U else UIntToOH(wvd_eg(vrfBankBits-1,0)))
+  io.pipe_write_req.bank_sel := (if (vrfBankBits == 0) 1.U else UIntToOH(wvd_eg(vrfBankBits,1)))
   io.pipe_write_req.pipe_depth := pipe_stages
   io.pipe_write_req.oldest := oldest
   io.pipe_write_req.fire := io.iss.fire

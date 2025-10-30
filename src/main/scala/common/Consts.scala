@@ -89,8 +89,13 @@ object OPFFunct6 extends ChiselEnum {
 }
 
 object OPMExtFunct6 extends ChiselEnum {
-  val ldotu = Value(0x26.U)
-  val ldots = Value(0x27.U)
+  val fwldota = Value(0x24.U)
+  val qldotua = Value(0x26.U) // Also used for fqldota
+  val qldotsa = Value(0x27.U) // Also used for fqldota.alt
+  val fbdota  = Value(0x2b.U)
+  val fwbdota = Value(0x2c.U)
+  val qbdotua = Value(0x2e.U) // Also used for fqbdota
+  val qbdotsa = Value(0x2f.U) // Also used for fqbdota.alt
 }
 
 trait HasVectorConsts {
