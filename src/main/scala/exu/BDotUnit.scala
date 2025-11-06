@@ -12,11 +12,12 @@ import saturn.backend._
 import hardfloat._
 import scala.math._
 
-class IntegerDotPipe(pipe_depth: Int, acc_delay: Int, input_width: Int, output_width: Int)(implicit p: Parameters) extends CoreModule()(p) with HasVectorParams {
+class DotPipe(output_width: Int)(implicit p: Parameters) extends CoreModule()(p) with HasVectorParams {
   val io = IO(new Bundle {
     val set_acc = Input(Bool())
     val acc_init = Input(UInt(output_width.W))
     val valid = Input(Bool())
+    val input_tail = Input(Bool())
     val signed_a = Input(Bool())
     val signed_b = Input(Bool())
     val in_a = Input(UInt(dLen.W))
@@ -24,6 +25,9 @@ class IntegerDotPipe(pipe_depth: Int, acc_delay: Int, input_width: Int, output_w
     val vl = Input(UInt((1+log2Ceil(maxVLMax)).W))
     val out = Output(UInt(output_width.W))
   })
+}
+
+class IntegerDotPipe(pipe_depth: Int, acc_delay: Int, input_width: Int, output_width: Int)(implicit p: Parameters) extends DotPipe(output_width)(p) {
 
   val acc = Reg(UInt(output_width.W))
 
@@ -42,14 +46,21 @@ class IntegerDotPipe(pipe_depth: Int, acc_delay: Int, input_width: Int, output_w
   val sum = prods.foldLeft(0.U) { (x, y) => x + y }
   
   val sum_pipe = Pipe(io.valid, sum, pipe_depth)
+  val acc_pipe = Pipe(sum_pipe.valid, sum_pipe.bits +& acc, acc_delay - 1)
 
   when (io.set_acc) {
     acc := io.acc_init
-  } .elsewhen (sum_pipe.valid) {
-    acc := sum_pipe.bits +& acc
+  } .elsewhen (acc_pipe.valid) {
+    acc := acc_pipe.bits
   }
 
-  io.out := acc
+  val out = Reg(UInt(output_width.W))
+
+  when (acc_pipe.valid && io.input_tail) {
+    out := acc_pipe.bits
+  }
+
+  io.out := out
 }
 
 class BDotSequencerControl(implicit p: Parameters) extends CoreBundle()(p) with HasVectorParams {
@@ -61,16 +72,23 @@ class BDotSequencerControl(implicit p: Parameters) extends CoreBundle()(p) with 
   val emul = Input(UInt(2.W))
   val in_eew = Input(UInt(2.W))
   val acc_eew = Input(UInt(2.W))
-  val set_acc = Input(Bool())
-  val writeback = Input(Bool())
+  // val set_acc = Input(Bool())
+  val head = Input(Bool())
+  val input_tail = Input(Bool())
+  val src_valid = Input(Bool())
+  val acc_valid = Input(Bool())
   val vl = Input(UInt((1+log2Ceil(maxVLMax)).W))
 }
 
+class BDotSequencerWritebackControl(implicit p: Parameters) extends CoreBundle()(p) with HasVectorParams {
+
+}
+
 class BDotUnit(pipe_depth: Int, acc_delay: Int)(implicit p: Parameters) extends CoreModule()(p) with HasVectorParams {
-  val total_depth = pipe_depth + (vLen/dLen)
   
   val io = IO(new Bundle {
     val op = Flipped(Decoupled(new BDotSequencerControl))
+    val writeback_op = Flipped(Decoupled(new BDotSequencerWritebackControl))
     val rvs1_data = Input(UInt(dLen.W))
     val rvs2_data = Input(UInt(dLen.W))
     val rvd_data = Input(UInt(dLen.W))
@@ -79,17 +97,22 @@ class BDotUnit(pipe_depth: Int, acc_delay: Int)(implicit p: Parameters) extends 
     val write = Output(Valid(new VectorWrite(dLen)))
   })
 
-  dontTouch(io.batch_vs2_data)
+  def padUInt8sTo16(in: UInt, count: Int): UInt = {
+    in.asTypeOf(Vec(count, UInt(8.W))).map { 0.U(8.W) ## _ }.asUInt
+  }
 
   val out = Wire(UInt(dLen.W))
   val ready = RegInit(true.B)
 
-  val int8_out = Wire(Vec(4, UInt(32.W)))
-  for (i <- 0 until 4) {
+  val input_tail_pipe = Pipe(io.op.valid, io.op.bits.input_tail, pipe_depth + acc_delay)
+
+  val int8_out = Wire(Vec(8, UInt(32.W)))
+  for (i <- 0 until 8) {
     val int8_pipe = Module(new IntegerDotPipe(pipe_depth, acc_delay, 8, 32))
-    int8_pipe.io.set_acc := io.op.fire && !io.op.bits.fp && io.op.bits.in_eew === 0.U && io.op.bits.set_acc
-    int8_pipe.io.acc_init := io.rvd_data((i + 1) * 32 - 1, i * 32)
-    int8_pipe.io.valid := io.op.fire && !io.op.bits.fp && io.op.bits.in_eew === 0.U
+    int8_pipe.io.set_acc := io.op.fire && !io.op.bits.fp && io.op.bits.in_eew === 0.U && io.op.bits.head
+    int8_pipe.io.acc_init := 0.U // io.rvd_data((i + 1) * 32 - 1, i * 32)
+    int8_pipe.io.valid := io.op.fire && io.op.bits.src_valid && !io.op.bits.fp && io.op.bits.in_eew === 0.U
+    int8_pipe.io.input_tail := input_tail_pipe.valid && input_tail_pipe.bits
     int8_pipe.io.signed_a := io.op.bits.altfmt
     int8_pipe.io.signed_b := io.op.bits.signed
     int8_pipe.io.in_a := io.rvs1_data
@@ -99,26 +122,40 @@ class BDotUnit(pipe_depth: Int, acc_delay: Int)(implicit p: Parameters) extends 
   }
 
   out := int8_out.asUInt
+  dontTouch(out)
 
-  val write_eg_pipe = Pipe(io.op.fire && io.op.bits.writeback, io.op.bits.base_eg, pipe_depth + acc_delay)
+  val write_eg_pipe = Pipe(io.op.fire && io.writeback_op.fire, io.op.bits.base_eg, pipe_depth + acc_delay)
   val ready_pipe = Pipe(io.op.fire, 0.U, acc_delay)
+
+  val acc_read_eidx = RegInit(0.U(log2Ceil(8 * 64 / dLen).W))
+  val acc_write_eidx = RegInit(0.U(log2Ceil(8 * 64 / dLen).W))
+  val accumulator = Reg(Vec(8 * 64 / dLen, UInt(dLen.W)))
+  val did_first_read = RegInit(false.B)
 
   when (io.op.fire) {
     ready := false.B
+    when (io.op.bits.acc_valid) {
+      when (acc_read_eidx === 0.U) {
+        did_first_read := true.B
+      }
+      acc_read_eidx := acc_read_eidx + Mux(io.op.bits.acc_eew === 3.U, 1.U, 2.U)
+      when (io.op.bits.acc_eew === 3.U) {
+        accumulator(acc_read_eidx) := io.rvd_data
+      } .otherwise {
+        accumulator(acc_read_eidx) := padUInt8sTo16(io.rvd_data(dLen/2 - 1, 0), dLen / 16)
+        accumulator(acc_read_eidx + 1.U) := padUInt8sTo16(io.rvd_data(dLen - 1, dLen/2), dLen / 16)
+      }
+    }
   } .elsewhen (ready_pipe.valid) {
     ready := true.B
   }
 
   io.op.ready := ready
 
-  // when (io.op.fire) {
-  //   pipe_pos := 0.U
-  // } .elsewhen (tail) {
-  //   pipe_pos := 0.U
-  //   ready := true.B
-  // } .elsewhen(!ready) {
-  //   pipe_pos := pipe_pos_next
-  // }
+  dontTouch(accumulator)
+
+  val write_ready_accumulator = acc_write_eidx < acc_read_eidx || (did_first_read && acc_read_eidx === 0.U)
+  io.writeback_op.ready := false.B // Need to make sure accumulation is done too
 
   io.write.valid := write_eg_pipe.valid
   io.write.bits.eg := write_eg_pipe.bits

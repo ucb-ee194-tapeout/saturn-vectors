@@ -54,6 +54,7 @@ class BDotSequencerIO(pipe_depth: Int, acc_delay: Int)(implicit p: Parameters) e
   val rvm  = Decoupled(new VectorReadReq)
   val pipe_write_req = new VectorPipeWriteReqIO(pipe_depth + acc_delay * (vLen/dLen) * 8)
   val batch_read_vs2 = Output(Bool())
+  val writeback_op = Decoupled(new BDotSequencerWritebackControl)
 }
 
 class BDotSequencer(pipe_depth: Int, acc_delay: Int)(implicit p: Parameters) extends Sequencer[BDotSequencerControl]()(p) with HasVectorParams with HasCoreParameters {
@@ -69,7 +70,8 @@ class BDotSequencer(pipe_depth: Int, acc_delay: Int)(implicit p: Parameters) ext
   val busy = RegInit(false.B)
   val inst = Reg(new BackendIssueInst)
   
-  val eidx = RegInit(0.U(log2Ceil(maxVLMax).W))
+  val read_eidx = RegInit(0.U(log2Ceil(maxVLMax).W))
+  val write_eidx = RegInit(0.U(log2Ceil(maxVLMax).W))
   val head = Reg(Bool())
 
   val wvd_mask = Reg(UInt(egsTotal.W))
@@ -90,15 +92,22 @@ class BDotSequencer(pipe_depth: Int, acc_delay: Int)(implicit p: Parameters) ext
   val renvm = Reg(Bool())
   val vl = Reg(UInt((1+log2Ceil(maxVLMax)).W))
 
-  val next_eidx = eidx +& 1.U
+  val src_eidx_max = (vLen / dLen).U << emul
+  val acc_eidx_max = Mux(batched, 1.U << (acc_eew - (log2Ceil(dLen) - 6).U), 1.U)
+  val read_eidx_max = Mux(src_eidx_max > acc_eidx_max, src_eidx_max, acc_eidx_max)
+
+  val next_read_eidx = read_eidx +& 1.U
+  val next_write_eidx = write_eidx +& 1.U
   val elements_width = (dLen / 8).U >> in_eew
   val next_vl = Mux(vl >= elements_width, vl - elements_width, 0.U)
 
-  val tail = next_eidx === ((vLen / dLen).U << emul) || next_vl === 0.U
+  val read_tail = next_read_eidx === read_eidx_max
+  val write_tail = next_write_eidx === acc_eidx_max
 
   io.dis.ready := !busy /*(!valid || (tail && io.iss.fire))*/ && !io.dis_stall && io.iss.ready // TODO: Optimize
 
-  val tail_pipe = Pipe(io.iss.fire && tail, 0.U, pipe_depth + acc_delay)
+  // TODO: Should be write_tail, or optimize better
+  val tail_pipe = Pipe(io.iss.fire && write_tail, 0.U, pipe_depth + acc_delay)
 
   // New instruction
   when (io.dis.fire) {
@@ -136,7 +145,7 @@ class BDotSequencer(pipe_depth: Int, acc_delay: Int)(implicit p: Parameters) ext
     
     head := true.B
   } .elsewhen (io.iss.fire) {
-    valid := !tail
+    valid := !read_tail
     head := false.B
   }
 
@@ -150,7 +159,7 @@ class BDotSequencer(pipe_depth: Int, acc_delay: Int)(implicit p: Parameters) ext
   io.seq_hazard.bits.wintent := hazardMultiply(wvd_mask)
   io.seq_hazard.bits.vat := inst.vat
 
-  val wvd_eg = getEgId(inst.rd, eidx, acc_eew, inst.writes_mask)
+  val wvd_eg = getEgId(inst.rd, write_eidx, acc_eew, inst.writes_mask)
 
   val vs1_read_oh = UIntToOH(io.rvs1.bits.eg)
   val vs2_read_oh = UIntToOH(io.rvs2.bits.eg)
@@ -161,18 +170,18 @@ class BDotSequencer(pipe_depth: Int, acc_delay: Int)(implicit p: Parameters) ext
   val raw_hazard = ((vs1_read_oh | vs2_read_oh | vd_read_oh | vm_read_oh) & io.older_writes) =/= 0.U
   val waw_hazard = (vd_write_oh & io.older_writes) =/= 0.U
   val war_hazard = (vd_write_oh & io.older_reads) =/= 0.U
-  val data_hazard = raw_hazard || waw_hazard || war_hazard
+  // val data_hazard = raw_hazard || waw_hazard || war_hazard
 
   val oldest = inst.vat === io.vat_head
 
   io.rvs1.valid := valid
-  io.rvs1.bits.eg := getEgId(inst.rs1, eidx, in_eew, false.B)
+  io.rvs1.bits.eg := getEgId(inst.rs1, read_eidx, in_eew, false.B)
   io.rvs2.valid := valid
-  io.rvs2.bits.eg := getEgId(inst.rs2, eidx, in_eew, false.B)
+  io.rvs2.bits.eg := getEgId(inst.rs2, read_eidx, in_eew, false.B)
   io.rvd.valid := valid
-  io.rvd.bits.eg := getEgId(inst.rd, eidx, acc_eew, false.B)
+  io.rvd.bits.eg := getEgId(inst.rd, read_eidx, acc_eew, false.B)
   io.rvm.valid := valid && renvm
-  io.rvm.bits.eg := getEgId(0.U, eidx, 0.U, true.B)
+  io.rvm.bits.eg := getEgId(0.U, read_eidx, 0.U, true.B)
   io.batch_read_vs2 := batched && valid
 
   io.rvs1.bits.oldest := oldest
@@ -185,29 +194,35 @@ class BDotSequencer(pipe_depth: Int, acc_delay: Int)(implicit p: Parameters) ext
   exu_scheduler.io.reqs(0).fire := io.iss.fire
   exu_scheduler.io.reqs(0).depth := pipe_depth.U + acc_delay.U * ((vLen/dLen).U << emul)
 
-  io.pipe_write_req.request := valid && tail && exu_scheduler.io.reqs(0).available
+  io.pipe_write_req.request := valid && read_tail && exu_scheduler.io.reqs(0).available
   io.pipe_write_req.bank_sel := (if (vrfBankBits == 0) 1.U else UIntToOH(wvd_eg(vrfBankBits,1)))
   io.pipe_write_req.pipe_depth := (pipe_depth + acc_delay).U
   io.pipe_write_req.oldest := oldest
   io.pipe_write_req.fire := io.iss.fire
 
   when (io.iss.fire) {
-    when (!tail) {
-      eidx := next_eidx
+    when (!read_tail) {
+      read_eidx := next_read_eidx
       vl := next_vl
     } .otherwise {
-      eidx := 0.U
+      read_eidx := 0.U
+    }
+  }
+
+  when (io.writeback_op.fire) {
+    when (!write_tail) {
+      write_eidx := next_write_eidx
+    } .otherwise {
+      write_eidx := 0.U
     }
   }
 
   io.iss.valid := (valid &&
-    !data_hazard &&
+    !raw_hazard &&
     io.rvs1.ready &&
     io.rvs2.ready &&
     io.rvd.ready &&
-    !(renvm && !io.rvm.ready) &&
-    io.pipe_write_req.available &&
-    exu_scheduler.io.reqs(0).available
+    !(renvm && !io.rvm.ready)
   )
   io.iss.bits.base_eg := wvd_eg
   io.iss.bits.fp := fp
@@ -217,8 +232,16 @@ class BDotSequencer(pipe_depth: Int, acc_delay: Int)(implicit p: Parameters) ext
   io.iss.bits.emul := emul
   io.iss.bits.in_eew := in_eew
   io.iss.bits.acc_eew := acc_eew
-  io.iss.bits.set_acc := eidx === 0.U
-  io.iss.bits.writeback := tail
+  // io.iss.bits.set_acc := read_eidx === 0.U
+  io.iss.bits.head := head
+  io.iss.bits.src_valid := read_eidx < src_eidx_max
+  io.iss.bits.acc_valid := read_eidx < acc_eidx_max
+  io.iss.bits.input_tail := next_read_eidx === src_eidx_max
+  io.writeback_op.valid := (valid &&
+    !(waw_hazard || war_hazard) &&
+    io.pipe_write_req.available &&
+    exu_scheduler.io.reqs(0).available
+  )
   io.iss.bits.vl := vl
 
   io.busy := busy
