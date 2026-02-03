@@ -18,43 +18,23 @@ void i8_mm_scalar(int32_t* c_bias, int32_t* c_out, int8_t* at, int8_t* b, size_t
   }
 }
 
-void i32_transpose_scalar(int32_t* c_in, int32_t* c_out, size_t M, size_t N) {
-  for (size_t i = 0; i < M; i++) {
-    for (size_t j = 0; j < N; j++) {
-      c_out[j*M+i] = c_in[i*N+j];
-    }
-  }
-}
-void i32_init(int32_t* d, size_t s) {
-  for (size_t i = 0; i < s; i++) {
-    d[i] = i + 1;
-    // d[i] = 0;
-  }
-}
-void i8_init(int8_t* d, size_t s, int8_t start) {
-    for (size_t i = 0; i < s; i++) {
-      d[i] = (i + start) % 127; // keep values small to avoid overflow
-      // d[i] = 0;
-    }
-  }
-
 int i32_compare(int32_t* c_opu, int32_t* c_ref, size_t m, size_t n) {
   for (size_t i = 0; i < m; i++) {
     for (size_t j = 0; j < n; j++) {
       size_t index = i * n + j;
       if (c_opu[index] != c_ref[index]) {
-        printf("DIVERGENCE at index (%ld, %ld): 0x%x != 0x%x\n", i, j, c_opu[index], c_ref[index]);
+        printf("DIVERGENCE at index (%d, %d): %d != %d\n", i, j, c_opu[index], c_ref[index]);
         printf("opu:\n");
         for (size_t ii = 0; ii < m; ii++) {
           for (size_t jj = 0; jj < n; jj++) {
-            printf("0x%x ", c_opu[ii*n + jj]);
+            printf("%d ", c_opu[ii*n + jj]);
           }
           printf("\n");
         }
         printf("reference:\n");
         for (size_t ii = 0; ii < m; ii++) {
           for (size_t jj = 0; jj < n; jj++) {
-            printf("0x%x ", c_ref[ii*n + jj]);
+            printf("%d ", c_ref[ii*n + jj]);
           }
           printf("\n");
         }

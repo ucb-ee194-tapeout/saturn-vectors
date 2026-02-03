@@ -3,8 +3,9 @@
 import numpy as np
 import argparse
 
-m_dim = 49
-n_dim = 49
+vl = 64
+m_dim = 2*vl
+n_dim = 2*vl
 k_dim = 3
 
 parser = argparse.ArgumentParser(description='A script to generate input data for an SGEMM kernel.')
@@ -30,7 +31,7 @@ else:
 
 a_matrix = np.arange(k_dim*m_dim).reshape(k_dim, m_dim).astype(np.int8)
 b_matrix = np.arange(k_dim*n_dim).reshape(k_dim, n_dim).astype(np.int8)
-c_bias = np.arange(n_dim).astype(np.int32)
+c_bias = np.arange(n_dim).astype(np.int32) + 1
 c_matrix = np.matmul(a_matrix.T.astype(np.int32), b_matrix.astype(np.int32)) + c_bias[None, :]
 c_matrix = c_matrix.T
 
