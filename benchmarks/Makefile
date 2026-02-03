@@ -52,19 +52,16 @@ bmarks = \
 	vec-fp8 \
 	vec-mx-binary \
 	vec-mx-unary \
-	vec-fp8OPUTest \
-	vec-OPUmatmulFp8 \
+	opu-fp8-gemm \
 	opu-gemm \
 	opu-m2-gemm \
 	opu-m4-gemm \
 	opu-m4-transpose \
 	opu-2x2-gemm \
-	opu-4x1-gemm \
 	opu-fused-gemm-transpose \
 	opu-fused-lm2-gemm-transpose \
 	opu-lm2-gemm \
-	opu-lm2-memcopy \
-	opu-memcopy 
+	opu-lm2-memcopy 
 
 cpp_bmarks = \
 	vec-tasks \
