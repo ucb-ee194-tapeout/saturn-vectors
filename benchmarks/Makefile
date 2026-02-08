@@ -52,6 +52,7 @@ bmarks = \
 	vec-fp8 \
 	vec-mx-binary \
 	vec-mx-unary \
+	vec-mx-matmul \
 	opu-fp8-gemm \
 	opu-gemm \
 	opu-m4-gemm \
