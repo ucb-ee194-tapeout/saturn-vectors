@@ -38,4 +38,5 @@ with open("data.S", "w") as file:
     write_matrix(file, "a", a, 8)
     write_matrix(file, "b", b, 8)
     write_matrix(file, "r", r, 32)
+    file.write("\t.space 256\n")
     write_matrix(file, "rt", rt, 32)

@@ -12,6 +12,31 @@ import saturn.backend._
 import hardfloat._
 import scala.math._
 
+class AccumulatorSelectPipe(depth: Int) extends Module {
+  assert(depth > 0)
+
+  val io = IO(new Bundle {
+    val valid = Input(Bool())
+    val acc_in = Input(UInt(5.W))
+    val acc_out = Output(UInt(5.W))
+    val in_flight = Output(UInt(32.W))
+  })
+
+  val data_regs = Reg(Vec(depth + 1, UInt(5.W)))
+  val valid_regs = Reg(Vec(depth + 1, Bool()))
+
+  data_regs(0) := io.acc_in
+  valid_regs(0) := io.valid
+
+  for (i <- 1 until depth + 1) {
+    data_regs(i) := data_regs(i - 1)
+    valid_regs(i) := valid_regs(i - 1)
+  }
+
+  io.acc_out := data_regs(depth - 1)
+  io.in_flight := (0 until depth).map(i => Mux(valid_regs(i), UIntToOH(data_regs(i)), 0.U(32.W))).foldLeft(0.U)(_ | _)
+}
+
 class DotPipe(output_width: Int)(implicit p: Parameters) extends CoreModule()(p) with HasVectorParams {
   val io = IO(new Bundle {
     val valid = Input(Bool())
@@ -67,10 +92,6 @@ class BDotSequencerControl(implicit p: Parameters) extends CoreBundle()(p) with 
   val vl = Input(UInt((1+log2Ceil(maxVLMax)).W))
 }
 
-class BDotSequencerWritebackControl(implicit p: Parameters) extends CoreBundle()(p) with HasVectorParams {
-
-}
-
 class BDotUnit(pipe_depth: Int, acc_delay: Int)(implicit p: Parameters) extends CoreModule()(p) with HasVectorParams {
   
   val io = IO(new Bundle {
@@ -113,13 +134,16 @@ class BDotUnit(pipe_depth: Int, acc_delay: Int)(implicit p: Parameters) extends 
 
   val acc_eidx = RegInit(0.U(3.W))
   val acc_write_eidx = RegInit(0.U(3.W))
-  val acc_sel_pipe = Pipe(io.op.fire, io.op.bits.acc_sel, pipe_depth + acc_delay - 1)
+  val acc_sel_pipe = Module(new AccumulatorSelectPipe(pipe_depth + acc_delay - 1))
+  acc_sel_pipe.io.valid := io.op.fire && io.op.bits.src_valid
+  acc_sel_pipe.io.acc_in := io.op.bits.acc_sel
+  dontTouch(acc_sel_pipe.io.in_flight)
 
   dontTouch(int8_out_en)
   when (!io.op.bits.set_acc) {
     when (int8_out_en) {
       for (i <- 0 until 8) {
-        accumulator(acc_sel_pipe.bits)(i) := 0.U(32.W) ## int8_out(i) 
+        accumulator(acc_sel_pipe.io.acc_out)(i) := 0.U(32.W) ## int8_out(i) 
       }
     }
   }
@@ -161,7 +185,7 @@ class BDotUnit(pipe_depth: Int, acc_delay: Int)(implicit p: Parameters) extends 
     }
   }
 
-  io.op.ready := ready
+  io.op.ready := ready && (io.op.bits.src_valid || !acc_sel_pipe.io.in_flight(io.op.bits.acc_sel))
 
   io.write.valid := io.op.fire && io.op.bits.writeback
   io.write.bits.eg := io.op.bits.base_eg
