@@ -70,11 +70,12 @@ class VectorBackend(implicit p: Parameters) extends CoreModule()(p) with HasVect
   ))
 
   val vos = Option.when(useOpu) { Module(new OuterProductSequencer) }
-  val vbs = Option.when(useBDot) { Module(new BDotSequencer(2, 1)) }
-  val all_supported_insns = xissParams.map(_.insns).flatten ++ vos.map(_.opu_insns).getOrElse(Nil) ++ vbs.map(_.bdot_insns).getOrElse(Nil)
+  val vbs = Option.when(useBDot) { Module(new BDotSequencer) }
+  val vbws = Option.when(useBDot) { Module(new BDotWBSequencer(2, 1)) }
+  val all_supported_insns = xissParams.map(_.insns).flatten ++ vos.map(_.opu_insns).getOrElse(Nil) ++ vbs.map(_.bdot_insns).getOrElse(Nil) ++ vbws.map(_.bdot_wb_insns).getOrElse(Nil)
   val vps = Module(new SpecialSequencer(all_supported_insns))
 
-  val allSeqs = Seq(vls, vss, vps) ++ vxs.flatten ++ vos ++ vbs
+  val allSeqs = Seq(vls, vss, vps) ++ vxs.flatten ++ vos ++ vbs ++ vbws
   val allIssQs = Seq(vlissq, vsissq, vpissq) ++ vxissqs
 
   val flat_vxs = vxs.flatten
@@ -106,7 +107,7 @@ class VectorBackend(implicit p: Parameters) extends CoreModule()(p) with HasVect
     IssueGroup(vpissq, Seq(vps)),
   ) ++ (vxissqs.zip(vxs).zipWithIndex.map { case ((q, seqs), i) =>
     val s = if (i == 0 && useOpu) (seqs ++ vos) else seqs
-    if (useBDot) IssueGroup(q, s ++ vbs) else IssueGroup(q, s)
+    if (useBDot) IssueGroup(q, s ++ vbs ++ vbws) else IssueGroup(q, s)
   })
 
   // ======================================
@@ -410,7 +411,6 @@ class VectorBackend(implicit p: Parameters) extends CoreModule()(p) with HasVect
   vbdot.foreach { vbdot =>
     vrf.io.vxs(vbs_index).rvs1.req <> vbs.get.io.rvs1
     vrf.io.vxs(vbs_index).rvs2.req <> vbs.get.io.rvs2
-    vrf.io.vxs(vbs_index).rvd.req <> vbs.get.io.rvd
     vrf.io.vxs(vbs_index).rvm.req <> vbs.get.io.rvm
     vbs.get.io.iss.ready := vbdot.io.op.ready
     vbdot.io.op.valid := vbs.get.io.iss.valid
@@ -420,8 +420,17 @@ class VectorBackend(implicit p: Parameters) extends CoreModule()(p) with HasVect
     vrf.io.batch_read_vs2.get := vbs.get.io.batch_read_vs2
     vrf.io.batch_vs2_eg.get := vbs.get.io.rvs2.bits.eg
     vbdot.io.batch_vs2_data := vrf.io.batch_vs2_data.get
-    vbdot.io.rvd_data := vrf.io.vxs(vbs_index).rvd.resp
     vbdot.io.rvm_data := vrf.io.vxs(vbs_index).rvm.resp
+
+    vrf.io.vxs(vbs_index).rvd.req <> vbws.get.io.rvd
+    vbws.get.io.iss.ready := vbdot.io.wb_op.ready
+    vbdot.io.wb_op.valid := vbws.get.io.iss.valid
+    vbdot.io.wb_op.bits := vbws.get.io.iss.bits
+    vbdot.io.rvd_data := vrf.io.vxs(vbs_index).rvd.resp
+
+    vbws.get.io.in_flight := vbdot.io.in_flight
+    vbws.get.io.vbs_acc_intent := Mux(vatOlder(vbs.get.io.seq_hazard.bits.vat, vbws.get.io.seq_hazard.bits.vat) && vbs.get.io.seq_hazard.valid, vbs.get.io.acc_intent, 0.U) 
+    vbs.get.io.vbws_acc_intent := Mux(vatOlder(vbws.get.io.seq_hazard.bits.vat, vbs.get.io.seq_hazard.bits.vat) && vbws.get.io.seq_hazard.valid, vbws.get.io.acc_intent, 0.U) 
   }
 
   val frontend_rindex = Wire(new VectorReadIO)
@@ -450,8 +459,8 @@ class VectorBackend(implicit p: Parameters) extends CoreModule()(p) with HasVect
     vrf.io.iter_writes(flat_vxs.size).bits := DontCare
   }
 
-  vbs.foreach { vbs =>
-    vrf.io.vxs(vbs_index).pipe_write_req <> vbs.io.pipe_write_req
+  vbws.foreach { vbws =>
+    vrf.io.vxs(vbs_index).pipe_write_req <> vbws.io.pipe_write_req
     vrf.io.pipe_writes(vbs_index) := vbdot.get.io.write
 
     vrf.io.iter_writes(vbs_index).valid := false.B
@@ -616,6 +625,9 @@ class VectorBackend(implicit p: Parameters) extends CoreModule()(p) with HasVect
   }
   vbs.foreach { vbs =>
     clearVat(vbs.io.tail, vbs.io.vat) // iss.fire intentionally left out, tail includes it already
+  }
+  vbws.foreach { vbws =>
+    clearVat(vbws.io.tail, vbws.io.vat) // iss.fire intentionally left out, tail includes it already
   }
 
   // Signalling to frontend

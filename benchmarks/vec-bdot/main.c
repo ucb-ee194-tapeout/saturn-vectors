@@ -309,7 +309,7 @@ void matmul_bdot_multi_acc_unroll_m_32() {
         }
     }
 }*/
-
+/*
 void matmul_bdot_multi_acc_unroll_m_32_rescheduled() {
     int cycles_start;
     int cycles_end;
@@ -548,7 +548,7 @@ void matmul_bdot_multi_acc_unroll_m_32_rescheduled() {
         }
     }
 }
-
+*/
 void matmul_bdot_multi_acc_unroll_m_32_rescheduled_old() {
     int cycles_start;
     int cycles_end;
@@ -1034,6 +1034,7 @@ int main() {
     // matmul_bdot_multi_acc_unroll_m_32_k_2_rescheduled();
 
     // matmul_bdot_multi_acc_unroll_m_32_rescheduled();
+
     matmul_bdot_multi_acc_unroll_m_32_rescheduled_old();
     matmul_bdot_multi_acc_unroll_m_32_rescheduled_old();
 
@@ -1071,20 +1072,20 @@ int main() {
 
     // asm volatile("csrr %0, cycle" : "=r"(cycles_start));
 
-    VSETVLI_ALTFMT_X0(8, SEW_E32, LMUL_M2, 0);
+    VSETVLI_ALTFMT_X0(8, SEW_E32, LMUL_M1, 0);
     // VDOTSET_VV("x24", "x1");
     VDOTSETZERO_VV(X0);
     VDOTSETZERO_VV(X1);
     VSETVLI_ALTFMT_X0(a, SEW_E8, LMUL_M1, 0);
     VQBDOTUA_VV(X0, V8, V16);
-    VSETVLI_ALTFMT_X0(8, SEW_E32, LMUL_M2, 0);
-    VDOTSETZEROBC_VV();
+    VSETVLI_ALTFMT_X0(8, SEW_E32, LMUL_M1, 0);
+    // VDOTSETZEROBC_VV();
     VSETVLI_ALTFMT_X0(a, SEW_E8, LMUL_M1, 0);
     // VQBDOTUA_VV(X1, V8, V16);
     // VQBDOTUA_VV("x8", "x16");
     // VQBDOTUA_VV("x8", "x16");
     // VQLDOTUA_VV("x8", "x16"); // Long dot product
-    VSETVLI_ALTFMT_X0(8, SEW_E32, LMUL_M2, 0);
+    VSETVLI_ALTFMT_X0(8, SEW_E32, LMUL_M1, 0);
     // STALL(100);
     VDOTWB_VV(V24, X0);
     // VDOTWB_VV(V26, X1);
