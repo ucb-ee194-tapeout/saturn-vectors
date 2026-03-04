@@ -70,11 +70,11 @@ class OuterProductCell(implicit p: Parameters) extends CoreModule()(p) with HasO
   val regs = Reg(Vec(regsPerCell, UInt(opuParams.cWidth.W)))
 
   val f8macc = io.macc && io.fp8
-  val f8a = FType.E5M3.recode(fp8ToE5M3(io.in_l.asUInt, io.altfmt))
-  val f8b = FType.E5M3.recode(fp8ToE5M3(io.in_t.asUInt, io.altfmt))
-  val f8aw = widen(f8a, FType.E5M3, FType.BF16, f8macc)
-  val f8bw = widen(f8b, FType.E5M3, FType.BF16, f8macc)
-  val fma = Module(new MulAddRecFNPipe(0, FType.BF16.exp, FType.BF16.sig))
+  val f8a = MXFType.E5M3.recode(fp8ToE5M3(io.in_l.asUInt, io.altfmt))
+  val f8b = MXFType.E5M3.recode(fp8ToE5M3(io.in_t.asUInt, io.altfmt))
+  val f8aw = widen(f8a, MXFType.E5M3, MXFType.BF16, f8macc)
+  val f8bw = widen(f8b, MXFType.E5M3, MXFType.BF16, f8macc)
+  val fma = Module(new MulAddRecFNPipe(0, MXFType.BF16.exp, MXFType.BF16.sig))
   fma.io.validin := f8macc
   fma.io.op := 0.U // FMA
   fma.io.roundingMode := hardfloat.consts.round_near_even
@@ -82,7 +82,7 @@ class OuterProductCell(implicit p: Parameters) extends CoreModule()(p) with HasO
   fma.io.a := f8aw
   fma.io.b := f8bw
   fma.io.c := 0.U
-  val resultw = widen(fma.io.out, FType.BF16, FType.S, fma.io.validout)
+  val resultw = widen(fma.io.out, MXFType.BF16, FType.S, fma.io.validout)
   val fma2 = Module(new MulAddRecFNPipe(0, FType.S.exp, FType.S.sig))
   fma2.io.validin := fma.io.validout
   fma2.io.op := 0.U // FMA2

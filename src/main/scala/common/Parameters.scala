@@ -54,7 +54,14 @@ object VectorParams {
     vsiqEntries = 6
   )
 
-  def bdotParams = genParams.copy(
+  // mxParams:
+  // For a vector unit that can handle BF16 and OFP8
+  def mxParams = genParams.copy(
+    useMxFPFMA = true,
+    useMxConversion = true,
+  )
+
+  def bdotParams = mxParams.copy(
     vdqEntries = 16,
     vliqEntries = 16,
     vsiqEntries = 32,
@@ -62,7 +69,7 @@ object VectorParams {
     useBDot = true
   )
 
-  def opuParams = genParams.copy(
+  def opuParams = mxParams.copy(
     vliqEntries = 8, // beef this up since OPU tends to be used with LMUL=1
     vlissqEntries = 6,
     useOpu = true,
@@ -172,7 +179,7 @@ object VXFunctionalUnitGroups {
     SharedScalarFPFMAFactory(pipeDepth)
   )
   def fpFMA(pipeDepth: Int, elementwiseFP64: Boolean, segmentedFPFMA: Boolean, useMxFPFMA: Boolean) = Seq(
-    SIMDFPFMAFactory(pipeDepth, elementwiseFP64, segmentedFPFMA, useMxFPFMA)
+    SIMDFPFMAFactory(pipeDepth, useMxFPFMA, elementwiseFP64, segmentedFPFMA)
   )
   def fpMisc(useMxConversion: Boolean) = Seq(
     FPDivSqrtFactory,
@@ -180,10 +187,11 @@ object VXFunctionalUnitGroups {
     FPConvFactory(useMxConversion)
   )
 
-  def allFPFUs(fmaPipeDepth: Int, useScalarFPFMA: Boolean, elementwiseFP64: Boolean, segmentedFPFMA: Boolean, useMxFPFMA: Boolean, useMxConversion: Boolean) = (
+  def allFPFUs(fmaPipeDepth: Int, useScalarFPFMA: Boolean, elementwiseFP64: Boolean, segmentedFPFMA: Boolean, useMxFPFMA: Boolean, useMxConversion: Boolean) = {
+    require(!(useScalarFPFMA && useMxFPFMA))
     (if (useScalarFPFMA) sharedFPFMA(fmaPipeDepth) else fpFMA(fmaPipeDepth, elementwiseFP64, segmentedFPFMA, useMxFPFMA)) ++
     fpMisc(useMxConversion)
-  )
+  }
 }
 
 sealed trait VectorIssueStructure {

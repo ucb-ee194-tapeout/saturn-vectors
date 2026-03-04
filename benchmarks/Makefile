@@ -49,7 +49,6 @@ bmarks = \
 	vec-square-root-approx \
 	vec-transpose-load \
 	vec-transpose-store \
-	vec-fp8 \
 	vec-mx-binary \
 	vec-mx-unary \
 	vec-mx-matmul \
