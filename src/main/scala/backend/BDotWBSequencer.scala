@@ -45,6 +45,7 @@ class BDotWBSequencer(pipe_depth: Int, acc_delay: Int)(implicit p: Parameters) e
 
   val wvd_mask = Reg(UInt(egsTotal.W))
   val rvd_mask = Reg(UInt(egsTotal.W))
+  val acc_mask = Reg(UInt(32.W))
 
   val emul = Reg(UInt(2.W))
   val in_eew = Reg(UInt(2.W))
@@ -71,7 +72,9 @@ class BDotWBSequencer(pipe_depth: Int, acc_delay: Int)(implicit p: Parameters) e
     set_acc_bc := dis_ctrl.bool(BDotSetBC)
     writeback := dis_ctrl.bool(BDotWB)
 
-    val dis_vd_arch_mask  = get_arch_mask(dis_inst.rd, 0.U) // TODO: Multi-vd outputs
+    val amul = dis_inst.rs1(2, 0)
+
+    val dis_vd_arch_mask  = get_arch_mask(dis_inst.rd, amul) // TODO: Multi-vd outputs
 
     valid := true.B
     busy := true.B
@@ -81,9 +84,10 @@ class BDotWBSequencer(pipe_depth: Int, acc_delay: Int)(implicit p: Parameters) e
 
     wvd_mask      := FillInterleaved(egsPerVReg, dis_vd_arch_mask)
     rvd_mask      := FillInterleaved(egsPerVReg, dis_vd_arch_mask)
+    acc_mask      := get_arch_mask(dis_inst.rs2, amul)
 
-    emul := dis_inst.emul
-    in_eew := dis_inst.vconfig.vtype.vsew
+    emul := amul // dis_inst.emul
+    in_eew := 2.U // dis_inst.vconfig.vtype.vsew
 
     acc_sel := dis_inst.rs2
 
@@ -116,8 +120,10 @@ class BDotWBSequencer(pipe_depth: Int, acc_delay: Int)(implicit p: Parameters) e
 
   val oldest = inst.vat === io.vat_head
 
+  val current_rvd = (inst.rd << log2Ceil(egsPerVReg)) + eg_idx
+
   io.rvd.valid := valid && renvd
-  io.rvd.bits.eg := (inst.rd << log2Ceil(egsPerVReg)) + eg_idx
+  io.rvd.bits.eg := current_rvd
 
   io.rvd.bits.oldest := oldest
 
@@ -130,12 +136,18 @@ class BDotWBSequencer(pipe_depth: Int, acc_delay: Int)(implicit p: Parameters) e
   when (io.iss.fire) {
     when (!tail) {
       eg_idx := next_eg_idx
+      rvd_mask := rvd_mask & ~UIntToOH(current_rvd)
+      wvd_mask := wvd_mask & ~UIntToOH(current_rvd)
+      when (if (vLen == dLen) true.B else next_eg_idx((vLen/dLen) - 2, 0) === 0.U) {
+        acc_sel := acc_sel + 1.U
+        acc_mask := acc_mask & ~UIntToOH(acc_sel)
+      }
     } .otherwise {
       eg_idx := 0.U
     }
   }
 
-  io.acc_intent := Mux(set_acc_bc, "hFFFFFFFF".U(32.W), UIntToOH(acc_sel))
+  io.acc_intent := Mux(set_acc_bc, "hFFFFFFFF".U(32.W), acc_mask)
 
   io.iss.valid := (valid &&
     !data_hazard &&
