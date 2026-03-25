@@ -53,8 +53,8 @@ class DotPipe(output_width: Int)(implicit p: Parameters) extends CoreModule()(p)
 
 class IntegerDotPipe(pipe_depth: Int, acc_delay: Int, input_width: Int, output_width: Int)(implicit p: Parameters) extends DotPipe(output_width)(p) {
 
-  val a = io.in_a.asTypeOf(Vec(dLen / input_width, UInt(input_width.W))).zipWithIndex.map { case (e, i) => Mux(io.vl > i.U, e, 0.U) }
-  val b = io.in_b.asTypeOf(Vec(dLen / input_width, UInt(input_width.W))).zipWithIndex.map { case (e, i) => Mux(io.vl > i.U, e, 0.U) }
+  val a = io.in_a.asTypeOf(Vec(dLen / input_width, UInt(input_width.W))).zipWithIndex.map { case (e, i) => Mux(io.vl > i.U || true.B, e, 0.U) }
+  val b = io.in_b.asTypeOf(Vec(dLen / input_width, UInt(input_width.W))).zipWithIndex.map { case (e, i) => Mux(io.vl > i.U || true.B, e, 0.U) }
 
   val a_signs = a.map { e => io.signed_a && e(input_width - 1) }
   val b_signs = b.map { e => io.signed_b && e(input_width - 1) }

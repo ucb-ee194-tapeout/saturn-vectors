@@ -128,7 +128,7 @@ class BDotWBSequencer(pipe_depth: Int, acc_delay: Int)(implicit p: Parameters) e
   io.rvd.bits.oldest := oldest
 
   io.pipe_write_req.request := valid && writeback
-  io.pipe_write_req.bank_sel := (if (vrfBankBits == 0) 1.U else UIntToOH(wvd_eg(vrfBankBits,1)))
+  io.pipe_write_req.bank_sel := (if (vrfBankBits == 0) 1.U else UIntToOH(wvd_eg(vrfBankBits+log2Ceil(egsPerVReg)-1,log2Ceil(egsPerVReg))))
   io.pipe_write_req.pipe_depth := 0.U
   io.pipe_write_req.oldest := oldest
   io.pipe_write_req.fire := io.iss.fire
@@ -138,7 +138,7 @@ class BDotWBSequencer(pipe_depth: Int, acc_delay: Int)(implicit p: Parameters) e
       eg_idx := next_eg_idx
       rvd_mask := rvd_mask & ~UIntToOH(current_rvd)
       wvd_mask := wvd_mask & ~UIntToOH(current_rvd)
-      when (if (vLen == dLen) true.B else next_eg_idx((vLen/dLen) - 2, 0) === 0.U) {
+      when (if (vLen == dLen) true.B else next_eg_idx(log2Ceil(vLen/dLen) - 1, 0) === 0.U) {
         acc_sel := acc_sel + 1.U
         acc_mask := acc_mask & ~UIntToOH(acc_sel)
       }

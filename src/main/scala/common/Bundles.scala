@@ -125,7 +125,7 @@ class VectorPipeWriteReqIO(maxPipeDepth: Int)(implicit p: Parameters) extends Co
 
 class VectorWrite(writeBits: Int)(implicit p: Parameters) extends CoreBundle()(p) with HasVectorParams {
   val eg = UInt(log2Ceil(32 * vLen / writeBits).W)
-  def bankId = if (vrfBankBits == 0) 0.U else eg(vrfBankBits,1)
+  def bankId = if (vrfBankBits == 0) 0.U else eg(vrfBankBits+log2Ceil(egsPerVReg)-1,log2Ceil(egsPerVReg))
   val data = UInt(writeBits.W)
   val mask = UInt(writeBits.W)
 }

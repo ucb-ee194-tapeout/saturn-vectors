@@ -156,7 +156,7 @@ class BDotSequencer()(implicit p: Parameters) extends Sequencer[BDotSequencerCon
     when (!tail) {
       eg_idx := next_eg_idx
       rvs1_mask := rvs1_mask & ~UIntToOH(current_rvs1)
-      when (if (vLen == dLen) true.B else next_eg_idx((vLen/dLen) - 2, 0) === 0.U) {
+      when (if (vLen == dLen) true.B else next_eg_idx(log2Ceil(vLen/dLen) - 1, 0) === 0.U) {
         acc_sel := acc_sel + 1.U
         acc_mask := acc_mask & ~UIntToOH(acc_sel)
         current_vl := vl
