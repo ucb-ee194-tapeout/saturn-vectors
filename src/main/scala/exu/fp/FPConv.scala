@@ -76,7 +76,14 @@ class FPConvBlock(implicit p: Parameters) extends CoreModule()(p) with HasFPUPar
   val raw16 = VecInit(in16.map(u => f2raw(FType.H, u)))
   val raw8e4m3 = VecInit(in8e5m2.map(u => f2raw(FType.E4M3, u)))
   val raw8e5m2 = VecInit(in8e5m2.map(u => f2raw(FType.E5M2, u)))
-  val raw8 = Mux(io.in_altfmt, raw8e5m2, raw8e4m3)
+  val raw8e4m3_extended = VecInit(raw8e4m3.map { r =>
+  val extended = Wire(chiselTypeOf(raw8e5m2(0)))
+  extended := r
+  extended.sig := Cat(0.U(1.W), r.sig)
+  extended
+})
+val raw8 = Mux(io.in_altfmt, raw8e5m2, raw8e4m3_extended)
+  //val raw8 = Mux(io.in_altfmt, raw8e5m2,  Cat(0.U(1.W), raw8e4m3))
 
   // val raw8e5m2as16 = VecInit(raw8e5m2.map(r => raw2raw(FType.H, r)))
   // val f8e4m3as16 = VecInit(in8e4m3.map(r => fp8e4m3_2raw16(FType.H, r)))
