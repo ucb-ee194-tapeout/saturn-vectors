@@ -27,11 +27,13 @@ object VectorParams {
     vxissqEntries = 3,
     vpissqEntries = 1,
     vatSz = 5,
+    vrfBanking = 4,
     useSegmentedIMul = true,
     doubleBufferSegments = true,
     useScalarFPFMA = false,
     useSegmentedFPFMA = true,
-    vrfBanking = 4,
+    useMxFPFMA = true,
+    useMxConversion = true,
     issStructure = VectorIssueStructure.Shared
   )
 
@@ -52,11 +54,17 @@ object VectorParams {
     vsiqEntries = 6
   )
 
+  def bdotParams = genParams.copy(
+    vrfBanking = 8,
+    useBDot = true
+  )
+
   def opuParams = genParams.copy(
     vliqEntries = 8, // beef this up since OPU tends to be used with LMUL=1
     vlissqEntries = 6,
     useOpu = true,
-    useElementwiseFP64 = false
+    useMxFPFMA = true,
+    useMxConversion = true
   )
 
   // multiFMAParams:
@@ -160,18 +168,18 @@ object VXFunctionalUnitGroups {
   def sharedFPFMA(pipeDepth: Int) = Seq(
     SharedScalarFPFMAFactory(pipeDepth)
   )
-  def fpFMA(pipeDepth: Int, elementwiseFP64: Boolean, segmentedFPFMA: Boolean) = Seq(
-    SIMDFPFMAFactory(pipeDepth, elementwiseFP64, segmentedFPFMA)
+  def fpFMA(pipeDepth: Int, elementwiseFP64: Boolean, segmentedFPFMA: Boolean, useMxFPFMA: Boolean) = Seq(
+    SIMDFPFMAFactory(pipeDepth, elementwiseFP64, segmentedFPFMA, useMxFPFMA)
   )
-  def fpMisc = Seq(
+  def fpMisc(useMxConversion: Boolean) = Seq(
     FPDivSqrtFactory,
     FPCmpFactory,
-    FPConvFactory
+    FPConvFactory(useMxConversion)
   )
 
-  def allFPFUs(fmaPipeDepth: Int, useScalarFPFMA: Boolean, elementwiseFP64: Boolean, segmentedFPFMA: Boolean) = (
-    (if (useScalarFPFMA) sharedFPFMA(fmaPipeDepth) else fpFMA(fmaPipeDepth, elementwiseFP64, segmentedFPFMA)) ++
-    fpMisc
+  def allFPFUs(fmaPipeDepth: Int, useScalarFPFMA: Boolean, elementwiseFP64: Boolean, segmentedFPFMA: Boolean, useMxFPFMA: Boolean, useMxConversion: Boolean) = (
+    (if (useScalarFPFMA) sharedFPFMA(fmaPipeDepth) else fpFMA(fmaPipeDepth, elementwiseFP64, segmentedFPFMA, useMxFPFMA)) ++
+    fpMisc(useMxConversion)
   )
 }
 
@@ -191,7 +199,7 @@ object VectorIssueStructure {
           VXSequencerParams("fp_int", (
             integerFUs(params.useIterativeIMul) ++
             (if (params.useIterativeIMul) Nil else integerMAC(params.imaPipeDepth, params.useSegmentedIMul)) ++
-            allFPFUs(params.fmaPipeDepth, params.useScalarFPFMA, params.useElementwiseFP64, params.useSegmentedFPFMA)
+            allFPFUs(params.fmaPipeDepth, params.useScalarFPFMA, params.useElementwiseFP64, params.useSegmentedFPFMA, params.useMxFPFMA, params.useMxConversion)
           ))
         )
       )
@@ -207,7 +215,7 @@ object VectorIssueStructure {
         seqs = Seq(
           VXSequencerParams("int", integerFUs(params.useIterativeIMul)),
           VXSequencerParams("fp",
-            allFPFUs(params.fmaPipeDepth, params.useScalarFPFMA, params.useElementwiseFP64, params.useSegmentedFPFMA) ++
+            allFPFUs(params.fmaPipeDepth, params.useScalarFPFMA, params.useElementwiseFP64, params.useSegmentedFPFMA, params.useMxFPFMA, params.useMxConversion) ++
             (if (params.useIterativeIMul) Nil else integerMAC(params.imaPipeDepth, params.useSegmentedIMul))
           )
         )
@@ -230,7 +238,7 @@ object VectorIssueStructure {
         depth = params.vxissqEntries,
         seqs = Seq(
           VXSequencerParams("fp",
-            allFPFUs(params.fmaPipeDepth, params.useScalarFPFMA, params.useElementwiseFP64, params.useSegmentedFPFMA) ++
+            allFPFUs(params.fmaPipeDepth, params.useScalarFPFMA, params.useElementwiseFP64, params.useSegmentedFPFMA, params.useMxFPFMA, params.useMxConversion) ++
             (if (params.useIterativeIMul) Nil else integerMAC(params.imaPipeDepth, params.useSegmentedIMul))
           )
         )
@@ -254,10 +262,10 @@ object VectorIssueStructure {
         depth = params.vxissqEntries,
         seqs = Seq(
           VXSequencerParams("fp0",
-            allFPFUs(params.fmaPipeDepth, params.useScalarFPFMA, params.useElementwiseFP64, params.useSegmentedFPFMA) ++
+            allFPFUs(params.fmaPipeDepth, params.useScalarFPFMA, params.useElementwiseFP64, params.useSegmentedFPFMA, params.useMxFPFMA, params.useMxConversion) ++
             (if (params.useIterativeIMul) Nil else integerMAC(params.imaPipeDepth, params.useSegmentedIMul))
           ),
-          VXSequencerParams("fp1", fpFMA(params.fmaPipeDepth, params.useElementwiseFP64, params.useSegmentedFPFMA))
+          VXSequencerParams("fp1", fpFMA(params.fmaPipeDepth, params.useElementwiseFP64, params.useSegmentedFPFMA, params.useMxFPFMA))
         )
       )
       Seq(int_path, fp_path)
@@ -279,7 +287,7 @@ object VectorIssueStructure {
         name = "fp",
         depth = params.vxissqEntries,
         seqs = Seq(
-          VXSequencerParams("fp", allFPFUs(params.fmaPipeDepth, params.useScalarFPFMA, params.useElementwiseFP64, params.useSegmentedFPFMA))
+          VXSequencerParams("fp", allFPFUs(params.fmaPipeDepth, params.useScalarFPFMA, params.useElementwiseFP64, params.useSegmentedFPFMA, params.useMxFPFMA, params.useMxConversion))
         )
       )
       Seq(int_path, fp_path)
@@ -301,7 +309,7 @@ object VectorIssueStructure {
         name = "fp",
         depth = params.vxissqEntries,
         seqs = Seq(
-          VXSequencerParams("fp", allFPFUs(params.fmaPipeDepth, params.useScalarFPFMA, params.useElementwiseFP64, params.useSegmentedFPFMA))
+          VXSequencerParams("fp", allFPFUs(params.fmaPipeDepth, params.useScalarFPFMA, params.useElementwiseFP64, params.useSegmentedFPFMA, params.useMxFPFMA, params.useMxConversion))
         )
       )
       Seq(int_path, fp_path)
@@ -345,6 +353,10 @@ case class VectorParams(
   fmaPipeDepth: Int = 4,
   imaPipeDepth: Int = 4,
 
+  // Minifloat support
+  useMxFPFMA: Boolean = false,
+  useMxConversion: Boolean = false,
+
   // for comparisons only
   hazardingMultiplier: Int = 0,
   hwachaLimiter: Option[Int] = None,
@@ -366,13 +378,34 @@ case class VectorParams(
 
   // Add OPU to design
   useOpu : Boolean = false,
+
+  // Add batch dot product unit
+  useBDot: Boolean = false,
 ) {
   def opuInsns = Seq(
     saturn.insns.OPMACC.VV,
+    saturn.insns.OPFMACC.VV,
     saturn.insns.OPMVIN.VX,
     saturn.insns.OPMVINBCAST.VX,
     saturn.insns.OPMVOUT.VX)
-  def supported_ex_insns = issStructure.generate(this).map(_.insns).flatten ++ (if (useOpu) opuInsns else Nil)
+  def bdotInsns = Seq(
+    saturn.insns.DOTSET.VV,
+    saturn.insns.DOTSETZERO.VV,
+    saturn.insns.DOTSETBC.VV,
+    saturn.insns.DOTSETZEROBC.VV,
+    saturn.insns.DOTWB.VV,
+    saturn.insns.QLDOTUA.VV,
+    saturn.insns.QLDOTSA.VV,
+    saturn.insns.QBDOTUA.VV,
+    saturn.insns.QBDOTSA.VV)
+  def supported_ex_insns = issStructure.generate(this).map(_.insns).flatten ++ (if (useOpu) opuInsns else Nil) ++ (if (useBDot) bdotInsns else Nil)
+
+  def vExts = 
+    (if (useMxConversion) Seq("zvfofp8min", "zfbfmin", "zvfbfmin", "zvfbfa") else Seq()) ++
+    (if (useMxFPFMA) Seq() else Seq())
+    .foldLeft(Seq()) { (acc, e) =>
+      if (!acc.contains(e)) acc :+ e else acc
+    }
 
   require(dLen >= 64, "dLen must be >= 64")
   require((dLen & (dLen - 1)) == 0, "dLen must be power of 2")
@@ -395,8 +428,9 @@ trait HasVectorParams extends HasVectorConsts { this: HasCoreParameters =>
   def mLenOffBits = log2Ceil(mLenB)
 
   def useOpu = vParams.useOpu
+  def useBDot = vParams.useBDot
 
-  def opuParams = OPUParameters(8, 8, 32, 2)
+  def opuParams = OPUParameters()
 
   def dmemTagBits = log2Ceil(vParams.vlifqEntries.max(vParams.vsifqEntries))
   def sgmemTagBits = log2Ceil(vParams.vsgifqEntries)
@@ -405,7 +439,7 @@ trait HasVectorParams extends HasVectorConsts { this: HasCoreParameters =>
   def vrfBankBits = log2Ceil(vParams.vrfBanking)
   def lsiqIdBits = log2Ceil(vParams.vliqEntries.max(vParams.vsiqEntries))
   val debugIdSz = 16
-  def nRelease = vParams.issStructure.generate(vParams).map(_.seqs.size).reduce(_+_) + 2 + (if (useOpu) 1 else 0) // load/stores/opu
+  def nRelease = vParams.issStructure.generate(vParams).map(_.seqs.size).reduce(_+_) + 2 + (if (useOpu) 1 else 0) + (if (useBDot) 1 else 0) // load/stores/opu
 
   def getEgId(vreg: UInt, eidx: UInt, eew: UInt, bitwise: Bool): UInt = {
     val base = vreg << log2Ceil(egsPerVReg)
