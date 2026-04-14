@@ -44,9 +44,6 @@ class FPConvBlock(mxConversion: Boolean)(implicit p: Parameters) extends CoreMod
 
   def f2raw(t: FType, in: UInt) = rawFloatFromFN(t.exp, t.sig, in)
 
-  // def fp8e5m2_2raw8(t: FType, in: UInt) = rawFloatFromFN(t.exp, t.sig, in)
-  // def fp8e4m3_2raw16(t: FType, in: UInt) = raw16FromF8e4m3(t.exp, t.sig, in)
-
   def raw2raw(t: FType, in: RawFloat) = {
     val out = WireInit(resizeRawFloat(t.exp, t.sig, in))
     // workaround bug in resizeRawFloat
@@ -69,25 +66,11 @@ class FPConvBlock(mxConversion: Boolean)(implicit p: Parameters) extends CoreMod
   val in64 = Seq(io.in)
   val in32 = io.in.asTypeOf(Vec(2, UInt(32.W)))
   val in16 = io.in.asTypeOf(Vec(4, UInt(16.W)))
-  val in8e4m3 = io.in.asTypeOf(Vec(8, UInt(8.W)))
-  val in8e5m2 = io.in.asTypeOf(Vec(8, UInt(8.W)))
   val in8 = io.in.asTypeOf(Vec(8, UInt(8.W)))
 
   val raw64 = VecInit(Seq(f2raw(FType.D, io.in)))
   val raw32 = VecInit(in32.map(u => f2raw(FType.S, u)))
   val raw16 = VecInit(in16.map(u => f2raw(FType.H, u)))
-  /*val raw8e4m3 = VecInit(in8e5m2.map(u => f2raw(FType.E4M3, u)))
-  val raw8e5m2 = VecInit(in8e5m2.map(u => f2raw(FType.E5M2, u)))
-  val raw8e4m3_extended = VecInit(raw8e4m3.map { r =>
-  val extended = Wire(chiselTypeOf(raw8e5m2(0)))
-    extended := r
-    extended.sig := Cat(0.U(1.W), r.sig)
-    extended
-  })*/
-  //val raw8 = Mux(io.in_altfmt, raw8e5m2, raw8e4m3_extended)
-
-  // val raw8e5m2as16 = VecInit(raw8e5m2.map(r => raw2raw(FType.H, r)))
-  // val f8e4m3as16 = VecInit(in8e4m3.map(r => fp8e4m3_2raw16(FType.H, r)))
   val rawBF16 = VecInit(in16.map(u => f2raw(FType.BF16, u)))
   val raw8 = VecInit(in8.map(u => f2raw(FType.E5M3, fp8ToE5M3(u, io.in_altfmt))))
 

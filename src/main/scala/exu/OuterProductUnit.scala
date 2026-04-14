@@ -24,17 +24,12 @@ case class OPUParameters (
   val nMrfRegs : Int = 4
 )
 
-//val nMrfRegs : Int = 2
-
 trait HasOPUParams extends HasVectorParams { this: HasCoreParameters =>
-   def varchRatio = vLen / dLen
   def maxLMUL = 2 // TODO: make this dynamic
   def regsPerTileReg = (vLen/dLen) * (vLen/dLen)
   def regsPerCell = regsPerTileReg * opuParams.nMrfRegs
   def cellRegIdxBits = log2Ceil(regsPerCell) 
   def prodWidth = opuParams.aWidth + opuParams.bWidth
-
-  def wideningFactor = opuParams.cWidth / opuParams.aWidth
 
   def clusterXdim = opuParams.cWidth / opuParams.bWidth
   def clusterYdim = opuParams.cWidth / opuParams.aWidth
@@ -44,12 +39,6 @@ trait HasOPUParams extends HasVectorParams { this: HasCoreParameters =>
 
 }
 
-
-/*
- * A single cell in the Outer Product Unit MACC array
- * Accumulation register alse serve as pipeline registers
- * during read out
- */
 class OuterProductCell(implicit p: Parameters) extends CoreModule()(p) with HasOPUParams {
 
   val io = IO(new Bundle{
