@@ -15,6 +15,7 @@
 #include "pathfinder.h"
 #include "util.h"
 #include <stdio.h>
+#include "driver/rocket-chip/l_trace_encoder/l_trace_encoder.h"
 
 //#define CHECK
 
@@ -49,6 +50,10 @@ int verify_result(int *result_s, int *result_v, uint32_t cols) {
 
 int main() {
   printf("PATHFINDER\n");
+  LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
+  // l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_PREDICT);
+  l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
+  l_trace_encoder_start(encoder);
 
   int error;
   int *s_ptr;
@@ -84,6 +89,6 @@ int main() {
   TEST(2);
   TEST(4);
   TEST(8);
-
+  l_trace_encoder_stop(encoder);
   return error;
 }

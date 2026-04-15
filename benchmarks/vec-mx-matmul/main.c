@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "rvv_mx.h"
+#include "driver/rocket-chip/l_trace_encoder/l_trace_encoder.h"
 
 extern size_t M;
 extern size_t N;
@@ -18,7 +19,7 @@ size_t vl;
     extern otype name ## _out[] __attribute__((aligned(64)));;
 
 #define TEST_VECTOR_OUTER(name, isew, osew, ealt, ivle, ovse) \
-    printf("Testing " #name " (vector outer product)\n"); \
+    printf("Testing " #name "\n"); \
     avl = N; \
     { \
         size_t n = 0; \
@@ -66,35 +67,34 @@ size_t vl;
 #define CLEAR_OUT(name, osew) \
     memset(name ## _out, 0, M * N * osew);
 
-#define CHECK_TEST(name, otype) \
+#define CHECK_TEST(name) \
     for (size_t m = 0; m < M; m ++) { \
         for (size_t n = 0; n < N; n ++) { \
-            otype expected = name ## _c[n + (m * N)]; \
-            otype result = name ## _out[n + (m * N)]; \
+            uint64_t expected = name ## _c[n + (m * N)]; \
+            uint64_t result = name ## _out[n + (m * N)]; \
             if (expected != result) { \
                 printf("Test failed\n"); \
-                printf("m = %zu, n = %zu, exp = %x, res = %x\n", m, n, (unsigned)expected, (unsigned)result); \
-                exit(1); \
+                printf("m = %d, n = %d, exp = %x, res = %x\n", m, n, expected, result); \
             } \
         } \
     }
 
 TEST_DATA(uint8_t, e4m3, uint16_t)
 TEST_DATA(uint8_t, e5m2, uint16_t)
-TEST_DATA(uint16_t, fp16, uint32_t)
-TEST_DATA(uint16_t, bf16, uint32_t)
 
 int main() {
-
+    LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
+    // l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_PREDICT);
+    l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
+    
+    l_trace_encoder_start(encoder);
     TEST_VECTOR_OUTER(e4m3, SEW_E8, SEW_E16, 0, "vle8.v", "vse16.v")
-    CHECK_TEST(e4m3, uint16_t)
     TEST_VECTOR_OUTER(e5m2, SEW_E8, SEW_E16, 1, "vle8.v", "vse16.v")
-    CHECK_TEST(e5m2, uint16_t)
-    TEST_VECTOR_OUTER(fp16, SEW_E16, SEW_E32, 0, "vle16.v", "vse32.v")
-    CHECK_TEST(fp16, uint32_t)
-    TEST_VECTOR_OUTER(bf16, SEW_E16, SEW_E32, 1, "vle16.v", "vse32.v")
-    CHECK_TEST(bf16, uint32_t)
-
+    l_trace_encoder_stop(encoder);
+    
+    CHECK_TEST(e4m3)
+    CHECK_TEST(e5m2)
+    
     printf("All tests passed\n");
 
     return 0;

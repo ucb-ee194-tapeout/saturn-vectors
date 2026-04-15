@@ -153,16 +153,26 @@ OPS_FMA_BINARY(bf16, SEW_E16, SEW_E32, 1, 0xFFFF, 0xFFFFFFFF)
         return wname ## _ ## op(wide_a, wide_b); \
     }
 
-#define OPS_FMA_BINARY_MX(name, wname) \
+#define OP_BINARY_MX_QWIDEN(name, op, wname, qname) \
+    fp_t name ## _q ## op(fp_t a, fp_t b) { \
+        fp_t wide_a = wname ## _to_ ## qname(name ## _to_ ## wname(a)); \
+        fp_t wide_b = wname ## _to_ ## qname(name ## _to_ ## wname(b)); \
+        return qname ## _ ## op(wide_a, wide_b); \
+    }
+
+#define OPS_FMA_BINARY_MX(name, wname, qname) \
     OP_BINARY_MX(name, mul, wname) \
     OP_BINARY_MX(name, add, wname) \
     OP_BINARY_MX(name, sub, wname) \
     OP_BINARY_MX_WIDEN(name, mul, wname) \
     OP_BINARY_MX_WIDEN(name, add, wname) \
-    OP_BINARY_MX_WIDEN(name, sub, wname)
+    OP_BINARY_MX_WIDEN(name, sub, wname) \
+    OP_BINARY_MX_QWIDEN(name, mul, wname, qname) \
+    OP_BINARY_MX_QWIDEN(name, add, wname, qname) \
+    OP_BINARY_MX_QWIDEN(name, sub, wname, qname)
 
-OPS_FMA_BINARY_MX(e5m2, bf16)
-OPS_FMA_BINARY_MX(e4m3, bf16)
+OPS_FMA_BINARY_MX(e5m2, bf16, fp32)
+OPS_FMA_BINARY_MX(e4m3, bf16, fp32)
 
 // FMA Ternary
 
@@ -174,6 +184,16 @@ fp_t e4m3_wmacc(fp_t a, fp_t b, fp_t c) {
 fp_t e5m2_wmacc(fp_t a, fp_t b, fp_t c) {
     fp_t prod = e5m2_wmul(a, b);
     return bf16_add(prod, c);
+}
+
+fp_t e4m3_qmacc(fp_t a, fp_t b, fp_t c) {
+    fp_t prod = e4m3_qmul(a, b);
+    return fp32_add(prod, c);
+}
+
+fp_t e5m2_qmacc(fp_t a, fp_t b, fp_t c) {
+    fp_t prod = e5m2_qmul(a, b);
+    return fp32_add(prod, c);
 }
 
 // Generation

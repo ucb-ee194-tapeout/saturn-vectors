@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "../common/rvv_mx.h"
+#include "driver/rocket-chip/l_trace_encoder/l_trace_encoder.h"
 
 extern size_t N;
 size_t avl;
@@ -75,7 +76,10 @@ TEST_DATA(uint8_t, e5m2_widen, uint16_t)
 TEST_DATA(uint8_t, e4m3_widen, uint16_t)
 
 int main() {
-
+	LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
+  	// l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_PREDICT);
+  	l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
+  	l_trace_encoder_start(encoder);
     TEST(fp16_narrow, SEW_E32, SEW_E16, SEW_E16, 0, "vle32.v", "vle16.v", LMUL_M2, LMUL_M1, asm volatile("vfncvt.f.f.w v24, v0"))
     TEST(bf16_narrow, SEW_E32, SEW_E16, SEW_E16, 1, "vle32.v", "vle16.v", LMUL_M2, LMUL_M1, asm volatile("vfncvt.f.f.w v24, v0"))
     TEST(e5m2_narrow, SEW_E16, SEW_E8, SEW_E8, 1, "vle16.v", "vle8.v", LMUL_M2, LMUL_M1, VFNCVTBF16_F_F_W(V24, V0))
@@ -88,7 +92,7 @@ int main() {
     TEST(bf16_widen, SEW_E16, SEW_E32, SEW_E16, 1, "vle16.v", "vle32.v", LMUL_M1, LMUL_M2, asm volatile("vfwcvt.f.f.v v24, v0"))
     TEST(e5m2_widen, SEW_E8, SEW_E16, SEW_E8, 1, "vle8.v", "vle16.v", LMUL_M1, LMUL_M2, VFWCVTBF16_F_F_V(V24, V0))
     TEST(e4m3_widen, SEW_E8, SEW_E16, SEW_E8, 0, "vle8.v", "vle16.v", LMUL_M1, LMUL_M2, VFWCVTBF16_F_F_V(V24, V0))
-
+	l_trace_encoder_stop(encoder);
     printf("All tests passed\n");
 
     return 0;

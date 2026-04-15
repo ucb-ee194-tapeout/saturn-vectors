@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "rvv_mx.h"
+#include "driver/rocket-chip/l_trace_encoder/l_trace_encoder.h"
 
 extern size_t N;
 size_t avl;
@@ -88,11 +89,14 @@ TEST_DATA_BINARY_FMA(uint8_t, e5m2, uint16_t)
 	TEST(name ## _wsub, sew, wsew, sew, ealt, vle, wvle, LMUL_M1, LMUL_M2, asm volatile("vfwsub.vv v24, v0, v4"))
 
 int main() {
-	
+	LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id())
+	l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET)
+	l_trace_encoder_start(encoder)
 	TEST_BINARY_FMA(fp16, SEW_E16, SEW_E32, 0, "vle16.v", "vle32.v", fp16)
 	TEST_BINARY_FMA(bf16, SEW_E16, SEW_E32, 1, "vle16.v", "vle32.v", bf16)
 	TEST_BINARY_FMA(e4m3, SEW_E8, SEW_E16, 0, "vle8.v", "vle16.v", e4m3)
 	TEST_BINARY_FMA(e5m2, SEW_E8, SEW_E16, 1, "vle8.v", "vle16.v", e5m2)
+	l_trace_encoder_stop(encoder)
 
 	printf("All tests passed\n");
 

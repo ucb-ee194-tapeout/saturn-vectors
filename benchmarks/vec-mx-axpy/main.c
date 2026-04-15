@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "rvv_mx.h"
+#include "driver/rocket-chip/l_trace_encoder/l_trace_encoder.h"
 
 extern size_t N;
 size_t avl, vl;
@@ -57,15 +58,25 @@ TEST_DATA(uint16_t, fp16_axpy)
 TEST_DATA(uint16_t, bf16_axpy)
 
 int main() {
+	LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
+	l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
+	l_trace_encoder_start(encoder);
 	TEST_AXPY(e4m3_axpy, uint8_t, SEW_E8, 0, "vle8.v",
 		do { asm volatile("vmv.v.v v24, v8"); asm volatile("vfmacc.vv v24, v4, v0"); } while (0));
+	l_trace_encoder_stop(encoder);
+	l_trace_encoder_start(encoder);
 	TEST_AXPY(e5m2_axpy, uint8_t, SEW_E8, 1, "vle8.v",
 		do { asm volatile("vmv.v.v v24, v8"); asm volatile("vfmacc.vv v24, v4, v0"); } while (0));
+	l_trace_encoder_stop(encoder);
+	l_trace_encoder_start(encoder);
 	TEST_AXPY(fp16_axpy, uint16_t, SEW_E16, 0, "vle16.v",
 		do { asm volatile("vmv.v.v v24, v8"); asm volatile("vfmacc.vv v24, v4, v0"); } while (0));
-	TEST_AXPY(bf16_axpy, uint16_t, SEW_E16, 1, "vle16.v",
+	l_trace_encoder_stop(encoder);
+	l_trace_encoder_start(encoder);
+    TEST_AXPY(bf16_axpy, uint16_t, SEW_E16, 1, "vle16.v",
 		do { asm volatile("vmv.v.v v24, v8"); asm volatile("vfmacc.vv v24, v4, v0"); } while (0));
 
+	l_trace_encoder_stop(encoder);
 	printf("All tests passed\n");
 	return 0;
 }

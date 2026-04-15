@@ -38,7 +38,10 @@ fp_t e5m2_to_bf16(fp_t a);
 	fp_t name ## _sub(fp_t a, fp_t b); \
 	fp_t name ## _wmul(fp_t a, fp_t b); \
 	fp_t name ## _wadd(fp_t a, fp_t b); \
-	fp_t name ## _wsub(fp_t a, fp_t b);
+	fp_t name ## _wsub(fp_t a, fp_t b); \
+	fp_t name ## _qmul(fp_t a, fp_t b); \
+	fp_t name ## _qadd(fp_t a, fp_t b); \
+	fp_t name ## _qsub(fp_t a, fp_t b);
 _DEF_OPS_FMA_BINARY(fp32);
 _DEF_OPS_FMA_BINARY(fp16);
 _DEF_OPS_FMA_BINARY(bf16);
@@ -47,6 +50,8 @@ _DEF_OPS_FMA_BINARY(e4m3);
 
 fp_t e4m3_wmacc(fp_t a, fp_t b, fp_t c);
 fp_t e5m2_wmacc(fp_t a, fp_t b, fp_t c);
+fp_t e4m3_qmacc(fp_t a, fp_t b, fp_t c);
+fp_t e5m2_qmacc(fp_t a, fp_t b, fp_t c);
 
 fp_t gen_fp32(GenMode mode, double min, double max);
 fp_t gen_fp16(GenMode mode, double min, double max);

@@ -49,14 +49,12 @@ bmarks = \
 	vec-square-root-approx \
 	vec-transpose-load \
 	vec-transpose-store \
-<<<<<<< HEAD
-	opu-sq-gemm \
-	opu-m2-gemm \
-	vec-optest
-=======
-	vec-fp8 \
+	vec-mx-axpy \
 	vec-mx-binary \
 	vec-mx-unary \
+	vec-mx-matmul \
+	vec-bdot \
+	opu-mx-matmul \
 	opu-fp8-gemm \
 	opu-gemm \
 	opu-m4-gemm \
@@ -67,7 +65,6 @@ bmarks = \
 	opu-fused-lm2-gemm-transpose \
 	opu-lm2-gemm \
 	opu-lm2-memcopy 
->>>>>>> bf16fp8/saturn-fp8b16-mx
 
 cpp_bmarks = \
 	vec-tasks \
@@ -87,8 +84,13 @@ RISCV_LINK_OPTS ?= -static -nostdlib -nostartfiles -lm -lgcc -T $(src_dir)/commo
 RISCV_OBJDUMP ?= $(RISCV_PREFIX)objdump -C -D -S --disassemble-all --disassemble-zeroes --section=.text --section=.text.startup --section=.text.init --section=.data
 MX_EXTENSIONS = zfbfmin_zvfbfmin_zvfbfwma_zvfbfa_zvfofp8min
 RISCV_SIM ?= spike --isa=rv$(XLEN)gcv_zfh_zvfh_$(MX_EXTENSIONS) -p4 -m0x70020000:0x20000,0x80000000:0x10000000
+CHIPYARD_DIR ?= $(abspath ../../..)
 
-incs  += -I$(src_dir)/env -I$(src_dir)/common $(addprefix -I$(src_dir)/, $(bmarks))
+incs  += -I$(src_dir)/env -I$(src_dir)/common \
+$(addprefix -I$(src_dir)/, $(bmarks)) \
+-I$(CHIPYARD_DIR)/software/baremetal-ide \
+-I$(CHIPYARD_DIR)/software/baremetal-ide/driver/metal \
+-I$(CHIPYARD_DIR)/software/baremetal-ide/driver/rocket-chip/rocketcore
 objs  :=
 
 COMMON_SRCS = $(wildcard $(src_dir)/common/*.c) $(wildcard $(src_dir)/common/*.S) $(wildcard $(src_dir)/common/ara/*.c)
