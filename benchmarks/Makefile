@@ -50,11 +50,25 @@ bmarks = \
 	vec-transpose-load \
 	vec-transpose-store \
 	vec-mx-axpy \
+	vec-mx-bias-add \
 	vec-mx-binary \
+	vec-mx-binary-large \
+	vec-mx-conv1d \
+	vec-mx-dotprod \
+	vec-mx-fma \
+	vec-mx-fmacc \
+	vec-mx-gemv \
+	vec-mx-l2norm \
+	vec-mx-masked-binary \
+	vec-mx-max-reduction \
+	vec-mx-reduction-sum \
+	vec-mx-rmsnorm \
+	vec-mx-scale \
 	vec-mx-unary \
 	vec-mx-matmul \
+	vec-optest \
 	vec-bdot \
-	opu-mx-matmul \
+	#opu-mx-matmul \
 	opu-fp8-gemm \
 	opu-gemm \
 	opu-m4-gemm \

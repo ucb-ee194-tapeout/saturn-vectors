@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "rvv_mx.h"
+#include "driver/rocket-chip/l_trace_encoder/l_trace_encoder.h"
 
 extern size_t N;
 size_t avl, vl;
@@ -29,8 +30,12 @@ size_t avl, vl;
 	} while (0)
 
 int main() {
+	LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
+    l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
+    l_trace_encoder_start(encoder);
 	TEST_SUM(fp16_sum, SEW_E16, 0);
 	TEST_SUM(bf16_sum, SEW_E16, 1);
+	 l_trace_encoder_start(encoder);
 	printf("All tests passed\n");
 	return 0;
 }

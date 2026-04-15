@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "rvv_mx.h"
+#include "driver/rocket-chip/l_trace_encoder/l_trace_encoder.h"
 
 extern size_t N;
 size_t avl, vl;
@@ -41,10 +42,14 @@ size_t avl, vl;
 	} while (0)
 
 int main() {
+	LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
+	l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
+	l_trace_encoder_start(encoder);
 	TEST_MASKED(fp16_masked_mul, "vfmul.vv", SEW_E16, 0, "vle16.v");
 	TEST_MASKED(bf16_masked_mul, "vfmul.vv", SEW_E16, 1, "vle16.v");
 	TEST_MASKED(fp16_masked_add, "vfadd.vv", SEW_E16, 0, "vle16.v");
 	TEST_MASKED(bf16_masked_add, "vfadd.vv", SEW_E16, 1, "vle16.v");
+	l_trace_encoder_stop(encoder);
 	printf("All tests passed\n");
 	return 0;
 }

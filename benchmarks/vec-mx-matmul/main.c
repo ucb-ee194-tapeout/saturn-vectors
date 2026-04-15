@@ -94,7 +94,7 @@ int main() {
     
     CHECK_TEST(e4m3)
     CHECK_TEST(e5m2)
-    
+    l_trace_encoder_stop(encoder);
     printf("All tests passed\n");
 
     return 0;
