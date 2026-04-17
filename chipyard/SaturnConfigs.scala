@@ -59,12 +59,6 @@ class DMAV256D256RocketConfig extends Config(
   new freechips.rocketchip.rocket.WithNHugeCores(1) ++
   new chipyard.config.AbstractConfig)
 
-class MXV256D128RocketConfig extends Config(
-  new saturn.rocket.WithRocketVectorUnit(256, 128, VectorParams.mxParams) ++
-  new chipyard.config.WithSystemBusWidth(128) ++
-  new freechips.rocketchip.rocket.WithNHugeCores(1) ++
-  new chipyard.config.AbstractConfig)
-
 // Shuttle-integrated configs
 class GENV128D128ShuttleConfig extends Config(
   new saturn.shuttle.WithShuttleVectorUnit(128, 128, VectorParams.genParams) ++
@@ -97,13 +91,6 @@ class DSPV256D128ShuttleConfig extends Config(
 
 class GENV256D128ShuttleConfig extends Config(
   new saturn.shuttle.WithShuttleVectorUnit(256, 128, VectorParams.genParams) ++
-  new chipyard.config.WithSystemBusWidth(128) ++
-  new shuttle.common.WithShuttleTileBeatBytes(16) ++
-  new shuttle.common.WithNShuttleCores(1) ++
-  new chipyard.config.AbstractConfig)
-
-class MXV256D128ShuttleConfig extends Config(
-  new saturn.shuttle.WithShuttleVectorUnit(256, 128, VectorParams.mxParams) ++
   new chipyard.config.WithSystemBusWidth(128) ++
   new shuttle.common.WithShuttleTileBeatBytes(16) ++
   new shuttle.common.WithNShuttleCores(1) ++
@@ -172,6 +159,17 @@ class REFV512D512ShuttleConfig extends Config(
   new shuttle.common.WithNShuttleCores(1) ++
   new chipyard.config.AbstractConfig)
 
+class TacitGENV256D128ShuttleConfig extends Config(
+  //new tacit.WithTraceSinkDMA(1) ++
+  new tacit.WithTraceSinkAlways(0) ++
+  new chipyard.config.WithTraceArbiterMonitor ++
+  new chipyard.WithTacitEncoder ++
+  new saturn.shuttle.WithShuttleVectorUnit(256, 128, VectorParams.genParams) ++
+  new chipyard.config.WithSystemBusWidth(128) ++
+  new shuttle.common.WithShuttleTileBeatBytes(16) ++
+  new shuttle.common.WithNShuttleCores(1) ++
+  new chipyard.config.AbstractConfig)
+
 
 // Cosim configs
 
@@ -188,16 +186,6 @@ class GENV256D128ShuttleCosimConfig extends Config(
   new chipyard.harness.WithCospike ++
   new chipyard.config.WithTraceIO ++
   new saturn.shuttle.WithShuttleVectorUnit(256, 128, VectorParams.genParams) ++
-  new chipyard.config.WithSystemBusWidth(128) ++
-  new shuttle.common.WithShuttleDebugROB ++
-  new shuttle.common.WithShuttleTileBeatBytes(16) ++
-  new shuttle.common.WithNShuttleCores(1) ++
-  new chipyard.config.AbstractConfig)
-
-class MXV256D128ShuttleCosimConfig extends Config(
-  new chipyard.harness.WithCospike ++
-  new chipyard.config.WithTraceIO ++
-  new saturn.shuttle.WithShuttleVectorUnit(256, 128, VectorParams.mxParams) ++
   new chipyard.config.WithSystemBusWidth(128) ++
   new shuttle.common.WithShuttleDebugROB ++
   new shuttle.common.WithShuttleTileBeatBytes(16) ++
