@@ -22,6 +22,7 @@
 
 #include "iconv2d.h"
 #include "util.h"
+#include "driver/rocket-chip/l_trace_encoder/l_trace_encoder.h"
 
 // Define Matrix dimensions:
 // o = i ° f, with i=[MxN], f=[FxF], o=[MxN]
@@ -53,6 +54,10 @@ int verify_matrix(int64_t *matrix, int64_t *golden_matrix, int64_t R,
 
 int main() {
   printf("ICONV2D M=%ld N=%ld F=%ld\n", M, N, F);
+  LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
+  // l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_PREDICT);
+  l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
+  l_trace_encoder_start(encoder);
 
   unsigned long cycles1, cycles2, instr2, instr1;
   // Call the main kernel, and measure cycles
@@ -86,6 +91,6 @@ int main() {
   } else {
     printf("Passed.\n");
   }
-
+  l_trace_encoder_stop(encoder);
   return error;
 }

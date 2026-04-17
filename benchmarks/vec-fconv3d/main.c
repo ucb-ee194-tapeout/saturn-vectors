@@ -23,6 +23,7 @@
 #include "ara/util.h"
 #include "fconv3d.h"
 #include "util.h"
+#include "driver/rocket-chip/l_trace_encoder/l_trace_encoder.h"
 
 // Define Matrix dimensions:
 // o = i ° f, with i=[(M+F-1)x(N+f-1)xCH], f=[FxFxCH], o=[MxN]
@@ -59,6 +60,10 @@ int main() {
   printf("Output Mtx size: %dx%d\n", M, N);
   printf("Filter size: %dx%d\n", F, F);
   printf("Channels: %d\n", CH);
+  LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
+  // l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_PREDICT);
+  l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
+  l_trace_encoder_start(encoder);
 
 #if PREALLOCATE
   if (F == 7)
@@ -95,6 +100,6 @@ int main() {
   } else {
     printf("Passed.\n");
   }
-
+  l_trace_encoder_stop(encoder);
   return error;
 }

@@ -23,6 +23,7 @@
 
 #include "imatmul.h"
 #include "util.h"
+#include "driver/rocket-chip/l_trace_encoder/l_trace_encoder.h"
 
 // Define Matrix dimensions:
 // C = AB with A=[MxN], B=[NxP], C=[MxP]
@@ -52,7 +53,10 @@ int verify_matrix(int64_t *result, int64_t *gold, size_t R, size_t C) {
 int main() {
   printf("IMATMUL\n");
   unsigned long cycles1, cycles2, instr2, instr1;
-
+  LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
+  // l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_PREDICT);
+  l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
+  l_trace_encoder_start(encoder);
   for (int s = 4; s <= M; s *= 2) {
     printf("Calculating a (%d x %d) x (%d x %d) matrix multiplication...\n", s,
            s, s, s);
@@ -70,7 +74,7 @@ int main() {
     // Metrics
     int64_t runtime = cycles2 - cycles1;
     float performance = 2.0 * s * s * s / runtime;
-
+    l_trace_encoder_stop(encoder);
     printf("The execution took %d cycles.\n", runtime);
     printf("The performance is %ld OPs/1000 cycles.\n", (uint64_t)(1000.0 * performance));
 

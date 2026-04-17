@@ -79,6 +79,7 @@ WITH ACCESS OR USE OF THE SOFTWARE.
 #include "jacobi2d.h"
 #include "util.h"
 #include "ara/util.h"
+#include "driver/rocket-chip/l_trace_encoder/l_trace_encoder.h"
 
 
 // The padded matrices should be aligned in SW not on the padding,
@@ -96,6 +97,10 @@ extern DATA_TYPE B_v[] __attribute__((aligned(32), section(".l2")));
 
 int main() {
   printf("JACOBI2D\n");
+  LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
+  // l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_PREDICT);
+  l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
+  l_trace_encoder_start(encoder);
 
   int error = 0;
   unsigned long cycles1, cycles2, instr2, instr1;
@@ -120,6 +125,6 @@ int main() {
   printf("Vector jacobi2d (R=%ld C=%ld) cycle count: %d\n", R, C, runtime);
   printf("The performance is %ld DPFLOP/1000 cycles\n",
          (uint64_t)(1000.0 * performance));
-
+  l_trace_encoder_stop(encoder);
   return error;
 }

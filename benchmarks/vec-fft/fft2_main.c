@@ -7,6 +7,7 @@
 
 #include "util.h"
 #include "fft2.h"
+#include "driver/rocket-chip/l_trace_encoder/l_trace_encoder.h"
 
 //--------------------------------------------------------------------------
 // Input/Reference Data
@@ -18,6 +19,10 @@
 
 int main( int argc, char* argv[] )
 {
+  LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
+  // l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_PREDICT);
+  l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
+  l_trace_encoder_start(encoder);
 #if PREALLOCATE
   for (size_t i = 0; i < DATA_SIZE-1; i++) {
     volatile float tmp;
@@ -32,7 +37,7 @@ int main( int argc, char* argv[] )
   setStats(1);
   fft2(input_Xr, input_Xi, input_Wr, input_Wi, DATA_SIZE, LOG2_DATA_SIZE);
   setStats(0);
-
+l_trace_encoder_stop(encoder);
 #define VERIFY
 #ifdef VERIFY
 #define FFT_MAX_ERROR (10e-8f)
