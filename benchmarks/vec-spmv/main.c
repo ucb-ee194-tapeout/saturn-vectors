@@ -22,7 +22,6 @@
 #include "ara/spmv.h"
 #include "util.h"
 #include <stdio.h>
-#include "driver/rocket-chip/l_trace_encoder/l_trace_encoder.h"
 
 extern uint64_t R;
 extern uint64_t C;
@@ -40,10 +39,6 @@ extern double CSR_OUT_VECTOR[]
 
 int main() {
   printf("SpMV\n");
-  LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
-  // l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_PREDICT);
-  l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
-  l_trace_encoder_start(encoder);
 
   unsigned long cycles1, cycles2, instr2, instr1;
   double density = ((double)NZ) / (R * C);
@@ -73,8 +68,7 @@ int main() {
 
   printf("The execution took %d cycles.\n", runtime);
   printf("The performance is %ld FLOPs/1000 cycles.\n",
-         (uint64_t)(1000.0 * performance));
-  l_trace_encoder_stop(encoder);
+         (uint64_t)(1000.0 * performance));      
   printf("Verifying ...\n");
   if (spmv_verify(R, CSR_PROW, CSR_INDEX, CSR_DATA, CSR_IN_VECTOR,
                   CSR_OUT_VECTOR)) {

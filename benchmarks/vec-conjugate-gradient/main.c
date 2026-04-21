@@ -22,7 +22,6 @@
 #include "ara/fdotproduct.h"
 #include "ara/spmv.h"
 #include "util.h"
-#include "driver/rocket-chip/l_trace_encoder/l_trace_encoder.h"
 
 #include <stdio.h>
 
@@ -102,9 +101,6 @@ double CG_iteration_spmv(int32_t *A_PROW, int32_t *A_IDX, double *A_DATA,
 }
 
 int main() {
-  LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
-  // l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_PREDICT);
-  l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
   printf("Conjugate Gradient\n");
   printf("Solving a Ax=b equation with (%d x %d) Matrix size...\n", size, size);
   printf("Sparse Matrix in CSR format, with %ld nonzeros per row\n",
@@ -118,7 +114,6 @@ int main() {
   printf("Start CGM ...\n");
 
   // Start instruction and cycles count of the region of interest
-  l_trace_encoder_start(encoder);
   unsigned long cycles1, cycles2, instr2, instr1;
   instr1 = read_csr(minstret);
   cycles1 = read_csr(mcycle);
@@ -147,8 +142,7 @@ int main() {
   size_t rk_norm_new_ops = size;
 
   size_t operations = i * (rk_norm_ops + spmv_ops + pAp_ops + daxpy_ops + rk_norm_new_ops);
-
-  l_trace_encoder_stop(encoder);
+  
   // Instruction and cycles count of the region of interest
   printf("NUMBER OF OPERATIONS %lu\n", operations);
   printf("NUMBER OF EXEC CYCLES :%lu\n", cycles2 - cycles1);
