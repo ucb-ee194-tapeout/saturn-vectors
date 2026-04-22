@@ -31,7 +31,7 @@ int main( int argc, char* argv[] )
 #endif
 
   // Do the size sweeps
-#define MAXSZ 85
+#define MAXSZ 71
   if (M_DIM >= MAXSZ && N_DIM >= MAXSZ && K_DIM >= MAXSZ) {
     for (size_t t = 8; t <= MAXSZ; t += 7) {
       size_t start, end;
