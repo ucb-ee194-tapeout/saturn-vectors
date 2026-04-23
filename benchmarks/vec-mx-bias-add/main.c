@@ -40,12 +40,10 @@ size_t avl, vl;
 int main() {
 	
 	
-	l_trace_encoder_start(encoder);
 	TEST_BIAS(e4m3_bias, uint8_t, SEW_E8, 0, "vle8.v");
 	TEST_BIAS(e5m2_bias, uint8_t, SEW_E8, 1, "vle8.v");
 	TEST_BIAS(fp16_bias, uint16_t, SEW_E16, 0, "vle16.v");
 	TEST_BIAS(bf16_bias, uint16_t, SEW_E16, 1, "vle16.v");
-	l_trace_encoder_stop(encoder);
 	printf("All tests passed\n");
 	return 0;
 }

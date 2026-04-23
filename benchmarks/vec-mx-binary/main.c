@@ -92,12 +92,10 @@ int main() {
 	
   	
   	
-  	l_trace_encoder_start(encoder);
 	TEST_BINARY_FMA(fp16, SEW_E16, SEW_E32, 0, "vle16.v", "vle32.v", fp16)
 	TEST_BINARY_FMA(bf16, SEW_E16, SEW_E32, 1, "vle16.v", "vle32.v", bf16)
 	TEST_BINARY_FMA(e4m3, SEW_E8, SEW_E16, 0, "vle8.v", "vle16.v", e4m3)
 	TEST_BINARY_FMA(e5m2, SEW_E8, SEW_E16, 1, "vle8.v", "vle16.v", e5m2)
-	l_trace_encoder_stop(encoder);
 	printf("All tests passed\n");
 
 	return 0;

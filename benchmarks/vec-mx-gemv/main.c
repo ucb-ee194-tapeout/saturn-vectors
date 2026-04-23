@@ -79,7 +79,6 @@ size_t avl, vl;
 int main() {
 	
 	
-	l_trace_encoder_start(encoder);
 	TEST_GEMV_FP8(e4m3_gemv, 0, "vle8.v");
 	TEST_GEMV_FP8(e5m2_gemv, 1, "vle8.v");
 	TEST_GEMV_FP16(fp16_gemv, 0, "vle16.v");

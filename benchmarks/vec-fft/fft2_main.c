@@ -37,7 +37,6 @@ int main( int argc, char* argv[] )
   setStats(1);
   fft2(input_Xr, input_Xi, input_Wr, input_Wi, DATA_SIZE, LOG2_DATA_SIZE);
   setStats(0);
-l_trace_encoder_stop(encoder);
 #define VERIFY
 #ifdef VERIFY
 #define FFT_MAX_ERROR (10e-8f)

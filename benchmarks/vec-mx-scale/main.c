@@ -40,12 +40,10 @@ size_t avl, vl;
 int main() {
 	
 	
-	l_trace_encoder_start(encoder);
 	TEST_SCALE(e4m3_scale, uint8_t, SEW_E8, 0, "vle8.v");
 	TEST_SCALE(e5m2_scale, uint8_t, SEW_E8, 1, "vle8.v");
 	TEST_SCALE(fp16_scale, uint16_t, SEW_E16, 0, "vle16.v");
 	TEST_SCALE(bf16_scale, uint16_t, SEW_E16, 1, "vle16.v");
-	l_trace_encoder_stop(encoder);
 	printf("All tests passed\n");
 	return 0;
 }

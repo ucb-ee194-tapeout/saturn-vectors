@@ -46,10 +46,8 @@ size_t avl, vl;
 int main() {
 	
 	
-	l_trace_encoder_start(encoder);
 	TEST_CONV1D(fp16_conv1d, SEW_E16, 0);
 	TEST_CONV1D(bf16_conv1d, SEW_E16, 1);
-	l_trace_encoder_stop(encoder);
 	printf("All tests passed\n");
 	return 0;
 }

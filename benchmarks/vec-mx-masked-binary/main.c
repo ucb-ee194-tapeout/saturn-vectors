@@ -44,12 +44,10 @@ size_t avl, vl;
 int main() {
 	
 	
-	l_trace_encoder_start(encoder);
 	TEST_MASKED(fp16_masked_mul, "vfmul.vv", SEW_E16, 0, "vle16.v");
 	TEST_MASKED(bf16_masked_mul, "vfmul.vv", SEW_E16, 1, "vle16.v");
 	TEST_MASKED(fp16_masked_add, "vfadd.vv", SEW_E16, 0, "vle16.v");
 	TEST_MASKED(bf16_masked_add, "vfadd.vv", SEW_E16, 1, "vle16.v");
-	l_trace_encoder_stop(encoder);
 	printf("All tests passed\n");
 	return 0;
 }

@@ -44,10 +44,8 @@ size_t avl, vl;
 int main() {
 	
 	
-	l_trace_encoder_start(encoder);
 	TEST_L2NORM(fp16_l2norm, SEW_E16, 0);
 	TEST_L2NORM(bf16_l2norm, SEW_E16, 1);
-	l_trace_encoder_stop(encoder);
 	printf("All tests passed\n");
 	return 0;
 }

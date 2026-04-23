@@ -41,7 +41,6 @@ int main() {
    
 	TEST_MAX(fp16_max, SEW_E16, 0, 0xfc00);  /* -inf */
 	TEST_MAX(bf16_max, SEW_E16, 1, 0xff80);   /* -inf */
-	l_trace_encoder_start(encoder);
 	printf("All tests passed\n");
 	return 0;
 }

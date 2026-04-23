@@ -46,10 +46,8 @@ size_t avl, vl;
 int main() {
 	
 	
-	l_trace_encoder_start(encoder);
 	TEST_DOT(fp16_dot, SEW_E16, 0);
 	TEST_DOT(bf16_dot, SEW_E16, 1);
-	l_trace_encoder_stop(encoder);
 	printf("All tests passed\n");
 	return 0;
 }

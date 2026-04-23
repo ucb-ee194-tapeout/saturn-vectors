@@ -60,10 +60,8 @@ size_t avl, vl;
 int main() {
 	
 	
-	l_trace_encoder_start(encoder);
 	TEST_RMSNORM(fp16_rmsnorm, SEW_E16, 0);
 	TEST_RMSNORM(bf16_rmsnorm, SEW_E16, 1);
 	printf("All tests passed\n");
-	l_trace_encoder_stop(encoder);
 	return 0;
 }

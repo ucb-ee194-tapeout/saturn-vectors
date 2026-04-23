@@ -17,7 +17,6 @@ extern uint16_t fp16r[] __attribute__((aligned(64)));
 int main() {
 	
 	
-	l_trace_encoder_start(encoder);
 
 	size_t avl;
 	size_t vl;
@@ -79,7 +78,6 @@ int main() {
 		}
 	}
 	
-	l_trace_encoder_stop(encoder);
 	printf("All tests passed\n");
 
 	return 0;
