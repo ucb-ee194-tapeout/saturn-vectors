@@ -9,7 +9,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "util.h"
-#include "driver/rocket-chip/l_trace_encoder/l_trace_encoder.h"
+
 
 //--------------------------------------------------------------------------
 // Input/Reference Data

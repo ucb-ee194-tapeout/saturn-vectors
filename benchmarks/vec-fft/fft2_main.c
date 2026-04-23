@@ -7,7 +7,6 @@
 
 #include "util.h"
 #include "fft2.h"
-#include "driver/rocket-chip/l_trace_encoder/l_trace_encoder.h"
 
 //--------------------------------------------------------------------------
 // Input/Reference Data

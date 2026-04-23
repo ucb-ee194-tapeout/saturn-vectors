@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include "dotproduct.h"
 #include "util.h"
-#include "driver/rocket-chip/l_trace_encoder/l_trace_encoder.h"
+
 
 // Run also the scalar benchmark
 #define SCALAR 1

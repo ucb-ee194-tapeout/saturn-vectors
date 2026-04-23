@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "rvv_mx.h"
-#include "driver/rocket-chip/l_trace_encoder/l_trace_encoder.h"
+
 
 extern size_t IN_LEN;
 extern size_t K_LEN;

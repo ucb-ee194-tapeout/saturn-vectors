@@ -23,7 +23,7 @@
 #include "util.h"
 #include "ara/util.h"
 #include <stdio.h>
-#include "driver/rocket-chip/l_trace_encoder/l_trace_encoder.h"
+
 
 #define N_F64 512
 #define N_F32 1024

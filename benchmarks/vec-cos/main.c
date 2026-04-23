@@ -23,7 +23,7 @@
 #include "cos.h"
 #include "util.h"
 #include "ara/util.h"
-#include "driver/rocket-chip/l_trace_encoder/l_trace_encoder.h"
+
 
 #define N_F64 (512)
 extern size_t N_f64;

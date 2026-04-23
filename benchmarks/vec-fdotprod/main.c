@@ -23,7 +23,7 @@
 #include "ara/fdotproduct.h"
 #include "ara/util.h"
 #include <stdio.h>
-#include "driver/rocket-chip/l_trace_encoder/l_trace_encoder.h"
+
 
 // Threshold for FP comparisons
 #define THRESHOLD_64b 0.0000000001

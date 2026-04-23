@@ -23,7 +23,7 @@
 #include "util.h"
 #include "ara/util.h"
 #include <stdio.h>
-#include "driver/rocket-chip/l_trace_encoder/l_trace_encoder.h"
+
 
 // Check the results using a threshold
 #define CHECK

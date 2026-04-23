@@ -22,7 +22,7 @@
 #include "log.h"
 #include "util.h"
 #include "ara/util.h"
-#include "driver/rocket-chip/l_trace_encoder/l_trace_encoder.h"
+
 
 #define THRESHOLD 0.1
 

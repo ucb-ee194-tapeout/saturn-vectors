@@ -23,7 +23,7 @@
 
 #include "dropout.h"
 #include "util.h"
-#include "driver/rocket-chip/l_trace_encoder/l_trace_encoder.h"
+
 
 extern const unsigned int N;
 extern const float SCALE;

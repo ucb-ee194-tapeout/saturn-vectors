@@ -68,7 +68,6 @@ bmarks = \
 	vec-mx-matmul \
 	vec-optest \
 	vec-bdot \
-	tacit-hello-world \
 	#opu-mx-matmul \
 	opu-fp8-gemm \
 	opu-gemm \

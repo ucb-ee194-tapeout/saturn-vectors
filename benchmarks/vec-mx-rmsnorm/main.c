@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "rvv_mx.h"
-#include "driver/rocket-chip/l_trace_encoder/l_trace_encoder.h"
+
 
 extern size_t N;
 extern float eps;
