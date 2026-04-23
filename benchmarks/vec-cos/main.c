@@ -72,16 +72,16 @@ int check32(float* results) {
 }
 
 int main() {
-  LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
-  // l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_PREDICT);
-  l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
+  
+  
+  
   if (N_F64 != N_f64 || N_F32 != N_f32) exit(1);
 
   printf("FCOS\n");
 
   int error = 0;
   unsigned long cycles1, cycles2, instr2, instr1;
-  l_trace_encoder_start(encoder);
+ 
   if (N_f32 >= 256) {
     for (size_t t = 8; t <= 256; t += 31) {
       /* cycles1 = read_csr(mcycle); */
@@ -156,7 +156,7 @@ int main() {
   asm volatile("fence");
   instr2 = read_csr(minstret);
   cycles2 = read_csr(mcycle);
-  l_trace_encoder_stop(encoder);
+ 
   
   printf("The execution took %ld cycles %ld instructions.\n", cycles2 - cycles1, instr2 - instr1);
   printf("Checking results:\n");

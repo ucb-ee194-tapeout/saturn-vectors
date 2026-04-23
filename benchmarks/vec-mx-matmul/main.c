@@ -83,18 +83,18 @@ TEST_DATA(uint8_t, e4m3, uint16_t)
 TEST_DATA(uint8_t, e5m2, uint16_t)
 
 int main() {
-    LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
-    // l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_PREDICT);
-    l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
     
-    l_trace_encoder_start(encoder);
+    
+    
+    
+   
     TEST_VECTOR_OUTER(e4m3, SEW_E8, SEW_E16, 0, "vle8.v", "vse16.v")
     TEST_VECTOR_OUTER(e5m2, SEW_E8, SEW_E16, 1, "vle8.v", "vse16.v")
-    l_trace_encoder_stop(encoder);
+   
     
     CHECK_TEST(e4m3)
     CHECK_TEST(e5m2)
-    l_trace_encoder_stop(encoder);
+   
     printf("All tests passed\n");
 
     return 0;

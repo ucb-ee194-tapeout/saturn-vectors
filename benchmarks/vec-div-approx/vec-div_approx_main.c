@@ -26,10 +26,10 @@ void vec_div_approx(size_t n, float x[], float y[]);
 int main( int argc, char* argv[] )
 {
   printf("Div approx size = %ld\n", DATA_SIZE);
-  LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
-  // l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_PREDICT);
-  l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
-  l_trace_encoder_start(encoder);
+  
+  
+  
+ 
 #if PREALLOCATE
   // If needed we preallocate everything in the caches
   vec_div_approx(DATA_SIZE, input1_data, input2_data);
@@ -49,7 +49,7 @@ int main( int argc, char* argv[] )
   //   printf("test_val: %.2f\n", t1);
   // }
   // if (17 % 2 != 0) printf("test_val: %.2f\n\n", input1_data[17-1]);
-  l_trace_encoder_stop(encoder);
+ 
   return 0;
 
 }

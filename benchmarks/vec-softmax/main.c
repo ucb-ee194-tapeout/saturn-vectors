@@ -45,10 +45,10 @@ extern float o_s[] __attribute__((aligned(32)));
 extern float o_v[] __attribute__((aligned(32)));
 
 int main() {
-  LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
-  // l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_PREDICT);
-  l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
-  l_trace_encoder_start(encoder);
+  
+  
+  
+ 
   printf("SOFTMAX\n");
   printf("Channels: %lu\nInner Size: %lu\n", channels, innerSize);
 
@@ -82,7 +82,7 @@ int main() {
       printf("Error at index %d. %x != %x\n", k, *(uint32_t*)(&o_v[k]), *(uint32_t*)(&o_s[k]));
     }
   }
-  l_trace_encoder_stop(encoder);
+ 
   if (!error)
     printf("Check okay. No errors.\n");
 

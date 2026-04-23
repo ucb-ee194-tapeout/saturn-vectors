@@ -52,10 +52,10 @@ int verify_result(float *s_crops_data, float *v_crops_data, size_t size,
 
 int main() {
   printf("RoI Align\n");
-  LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
-  // l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_PREDICT);
-  l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
-  l_trace_encoder_start(encoder);
+  
+  
+  
+ 
   int64_t err;
   unsigned long cycles1, cycles2, instr2, instr1;
   uint64_t runtime_s, runtime_v;
@@ -110,11 +110,11 @@ int main() {
     err = (err == -1) ? 0 : err;
     printf("Failed. Index %d: %x != %x\n", err, *((uint32_t *)&crops_data[err]),
            *((uint32_t *)&crops_data_vec[err]));
-    l_trace_encoder_stop(encoder);
+   
     return err;
   } else {
     printf("Passed.\n");
   }
-  l_trace_encoder_stop(encoder);
+ 
   return 0;
 }

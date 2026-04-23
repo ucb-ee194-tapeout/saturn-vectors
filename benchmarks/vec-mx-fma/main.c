@@ -15,8 +15,8 @@ extern uint16_t fp16b[] __attribute__((aligned(64)));
 extern uint16_t fp16r[] __attribute__((aligned(64)));
 
 int main() {
-	LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
-	l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
+	
+	
 	l_trace_encoder_start(encoder);
 
 	size_t avl;

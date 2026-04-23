@@ -42,11 +42,11 @@ void vec_conditional(size_t n, int8_t x[], int16_t a[], int16_t b[], int16_t z[]
 
 int main( int argc, char* argv[] )
 {
-  LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
-  // l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_PREDICT);
+  
+  
   int16_t results_data[DATA_SIZE];
-  l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
-  l_trace_encoder_start(encoder);
+  
+ 
 
 #if PREALLOCATE
   // If needed we preallocate everything in the caches
@@ -58,6 +58,6 @@ int main( int argc, char* argv[] )
   vec_conditional(DATA_SIZE, input1_data, input2_data, input3_data, results_data);
   setStats(0);
   
-  l_trace_encoder_stop(encoder);
+ 
   return verify_short(DATA_SIZE, results_data, verify_data );
 }

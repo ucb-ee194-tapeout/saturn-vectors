@@ -10,10 +10,10 @@ const char* input = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, se
 size_t strlen_rvv(const char *s);
 
 int main() {
-  LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
-  // l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_PREDICT);
-  l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
-  l_trace_encoder_start(encoder);
+  
+  
+  
+ 
   size_t cycles1, cycles2;
   size_t max = strlen(input);
   printf("Performing strlen with max len = %ld\n", max);
@@ -27,6 +27,6 @@ int main() {
   }
   cycles2 = read_csr(mcycle);
   printf("The execution took %ld cycles.\n", cycles2 - cycles1);
-  l_trace_encoder_stop(encoder);
+ 
   return 0;
 }

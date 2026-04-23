@@ -38,8 +38,8 @@ size_t avl, vl;
 	} while (0)
 
 int main() {
-	LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
-	l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
+	
+	
 	l_trace_encoder_start(encoder);
 	TEST_SCALE(e4m3_scale, uint8_t, SEW_E8, 0, "vle8.v");
 	TEST_SCALE(e5m2_scale, uint8_t, SEW_E8, 1, "vle8.v");

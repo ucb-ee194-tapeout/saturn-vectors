@@ -74,10 +74,10 @@ int check32(float* results) {
 
 int main() {
   printf("FEXP N_64=%ld N_32=%ld\n", N_f64, N_f32);
-  LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
-  // l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_PREDICT);
-  l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
-  l_trace_encoder_start(encoder);
+  
+  
+  
+ 
   if (N_F64 != N_f64 || N_F32 != N_f32) return 1;
 
 
@@ -148,7 +148,7 @@ int main() {
   instr2 = read_csr(minstret);
   cycles2 = read_csr(mcycle);
   printf("The execution took %d cycles.\n", cycles2 - cycles1);
-  l_trace_encoder_stop(encoder);
+ 
   printf("Checking results:\n");
 
   error = check64(results_f64m1); if (error) { return error; }

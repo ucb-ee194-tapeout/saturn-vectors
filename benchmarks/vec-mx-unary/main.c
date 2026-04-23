@@ -76,9 +76,9 @@ TEST_DATA(uint8_t, e5m2_widen, uint16_t)
 TEST_DATA(uint8_t, e4m3_widen, uint16_t)
 
 int main() {
-	LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
-  	// l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_PREDICT);
-  	l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
+	
+  	
+  	
   	l_trace_encoder_start(encoder);
     TEST(fp16_narrow, SEW_E32, SEW_E16, SEW_E16, 0, "vle32.v", "vle16.v", LMUL_M2, LMUL_M1, asm volatile("vfncvt.f.f.w v24, v0"))
     TEST(bf16_narrow, SEW_E32, SEW_E16, SEW_E16, 1, "vle32.v", "vle16.v", LMUL_M2, LMUL_M1, asm volatile("vfncvt.f.f.w v24, v0"))

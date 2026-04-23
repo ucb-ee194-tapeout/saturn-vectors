@@ -40,10 +40,10 @@ extern float gold_results_f32[] __attribute__((aligned(16)));
 
 // Natural logarithm (base e)
 int main() {
-  LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
-  // l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_PREDICT);
-  l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
-  l_trace_encoder_start(encoder);
+  
+  
+  
+ 
   printf("FLOG\n");
   unsigned long cycles1, cycles2, instr2, instr1;
 
@@ -68,7 +68,7 @@ int main() {
   cycles2 = read_csr(mcycle);
   runtime = cycles2 = cycles1;
   printf("The execution took %d cycles.\n", runtime);
-  l_trace_encoder_stop(encoder);
+ 
 #ifdef CHECK
   printf("Checking results:\n");
 

@@ -64,8 +64,8 @@ TEST_DATA(uint8_t, e4m3_fmacc, uint8_t)
 TEST_DATA(uint8_t, e5m2_fmacc, uint8_t)
 
 int main() {
-	LTraceEncoderType *encoder = l_trace_encoder_get(get_hart_id());
-	l_trace_encoder_configure_branch_mode(encoder, BRANCH_MODE_TARGET);
+	
+	
 	l_trace_encoder_start(encoder);
 	TEST(e4m3_fmacc, SEW_E8, SEW_E8, SEW_E8, 0, "vle8.v", "vle8.v", LMUL_M1, LMUL_M1,
 	     do { asm volatile("vmv.v.v v24, v8"); asm volatile("vfmacc.vv v24, v0, v4"); } while(0))
